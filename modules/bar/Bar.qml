@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import "../../style"
 import "../launcher"
+import "../wallpaper"
 import "../../services"
 import "."
 
@@ -33,8 +34,11 @@ PanelWindow {
     // radius of the concave fillet connecting the plate sides to the top edge
     readonly property int flare: 14
 
-    // The plate morphs into the launcher on the targeted monitor only.
+    // The plate morphs into the launcher or the wallpaper ribbon on the
+    // targeted monitor only.
     readonly property bool launcherOpen: LauncherState.shown && LauncherState.screen === modelData.name
+    readonly property bool wallpaperOpen: Wallpaper.shown && Wallpaper.screen === modelData.name
+    readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen
 
     screen: modelData
 
@@ -50,7 +54,8 @@ PanelWindow {
         right: Theme.barSideMargin
     }
 
-    implicitHeight: root.launcherOpen ? launcher.height : Theme.barHeight
+    implicitHeight: root.launcherOpen ? launcher.height
+        : root.wallpaperOpen ? ribbon.height : Theme.barHeight
 
     Behavior on implicitHeight {
         NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -63,7 +68,7 @@ PanelWindow {
     color: "transparent"
 
     WlrLayershell.namespace: "quickshell:bar"
-    WlrLayershell.keyboardFocus: root.launcherOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.panelOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     mask: Region { item: plate }
 
@@ -75,8 +80,8 @@ PanelWindow {
 
         anchors.horizontalCenter: parent.horizontalCenter
         height: parent.height
-        width: root.launcherOpen
-            ? LauncherState.plateWidth
+        width: root.launcherOpen ? LauncherState.plateWidth
+            : root.wallpaperOpen ? Wallpaper.plateWidth
             : contentRow.implicitWidth + root.padH * 2
         clip: true
 
@@ -102,8 +107,8 @@ PanelWindow {
             anchors.rightMargin: root.padH
             spacing: 14
 
-            opacity: root.launcherOpen ? 0 : 1
-            enabled: !root.launcherOpen
+            opacity: root.panelOpen ? 0 : 1
+            enabled: !root.panelOpen
 
             Behavior on opacity {
                 // fade the bar widgets out fast so they don't linger through
@@ -152,6 +157,28 @@ PanelWindow {
             // fade the launcher content in just after the plate starts
             // growing, so the morph reads as one motion
             opacity: root.launcherOpen ? 1 : 0
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: 60 }
+                    NumberAnimation { duration: 150 }
+                }
+            }
+        }
+
+        // The wallpaper ribbon: same morph, horizontal filmstrip instead of
+        // a list. No keyboard focus needed — wheel scrolls, clicks apply.
+        WallpaperRibbon {
+            id: ribbon
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            visible: root.wallpaperOpen
+            active: root.wallpaperOpen
+
+            opacity: root.wallpaperOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
                     PauseAnimation { duration: 60 }

@@ -26,6 +26,7 @@ Singleton {
             root.shown = false;
             return;
         }
+        Wallpaper.shown = false; // the two bar plates share one morph
         // Empty target keeps the last used output; default to the first one.
         if (screenName !== "")
             root.screen = screenName;

@@ -20,8 +20,9 @@ PanelWindow {
 
     readonly property int maxListHeight: Math.round((root.screen?.height ?? 900) * 0.55)
 
-    visible: Notifs.shown || LauncherState.shown
-    screen: Quickshell.screens.find(s => s.name === (LauncherState.shown ? LauncherState.screen : Notifs.screen)) ?? null
+    visible: Notifs.shown || LauncherState.shown || Wallpaper.shown
+    screen: Quickshell.screens.find(s => s.name === (Wallpaper.shown ? Wallpaper.screen
+        : LauncherState.shown ? LauncherState.screen : Notifs.screen)) ?? null
 
     anchors {
         left: true
@@ -40,14 +41,16 @@ PanelWindow {
     // normal window into the strip between the bar and the scrim.
     exclusionMode: ExclusionMode.Ignore
 
-    // The vertical strip under the LAUNCHER plate is subtracted from the
-    // input mask: the scrim maps after the bar, so without the hole it would
-    // sit on top of the grown launcher plate and swallow its clicks. The
-    // notif plate lives inside THIS window, so it needs no hole (a hole
-    // would punch out its own input too). The two panels are mutually
-    // exclusive, so the hole is simply zero-sized while the center is open.
-    readonly property int holeW: LauncherState.shown ? LauncherState.plateWidth : 0
-    readonly property int holeX: LauncherState.shown
+    // The vertical strip under the morphed BAR panel (launcher or wallpaper
+    // ribbon, both centered on the plate) is subtracted from the input mask:
+    // the scrim maps after the bar, so without the hole it would sit on top
+    // of the grown plate and swallow its clicks. The notif plate lives
+    // inside THIS window, so it needs no hole (a hole would punch out its
+    // own input too). The panels are mutually exclusive, so only one width
+    // applies at a time.
+    readonly property int holeW: LauncherState.shown ? LauncherState.plateWidth
+        : Wallpaper.shown ? Wallpaper.plateWidth : 0
+    readonly property int holeX: root.holeW > 0
         ? Math.round((root.width - root.holeW) / 2) : 0
 
     mask: Region {
@@ -71,8 +74,10 @@ PanelWindow {
         onClicked: {
             if (LauncherState.shown)
                 LauncherState.close();
-            else
+            else if (Notifs.shown)
                 Notifs.shown = false;
+            else
+                Wallpaper.close();
         }
     }
 

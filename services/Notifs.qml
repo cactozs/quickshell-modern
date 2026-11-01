@@ -60,6 +60,7 @@ Singleton {
             return;
         }
         LauncherState.shown = false;
+        Wallpaper.shown = false;
         if (screenName !== "")
             root.screen = screenName;
         else if (root.screen === "")
