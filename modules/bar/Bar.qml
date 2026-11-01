@@ -106,7 +106,9 @@ PanelWindow {
             enabled: !root.launcherOpen
 
             Behavior on opacity {
-                NumberAnimation { duration: 150 }
+                // fade the bar widgets out fast so they don't linger through
+                // the morph
+                NumberAnimation { duration: 80 }
             }
 
             Workspaces {
@@ -146,6 +148,16 @@ PanelWindow {
             }
             visible: root.launcherOpen
             active: root.launcherOpen
+
+            // fade the launcher content in just after the plate starts
+            // growing, so the morph reads as one motion
+            opacity: root.launcherOpen ? 1 : 0
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: 60 }
+                    NumberAnimation { duration: 150 }
+                }
+            }
         }
     }
 

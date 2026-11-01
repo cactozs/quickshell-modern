@@ -25,12 +25,4 @@ RowLayout {
         font.pixelSize: 17
         font.weight: Font.DemiBold
     }
-
-    Text {
-        Layout.alignment: Qt.AlignVCenter
-        text: clock.date.toLocaleDateString(Qt.locale("en_US"), "ddd, MMM d")
-        color: Theme.onSurfaceVariant
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-    }
 }

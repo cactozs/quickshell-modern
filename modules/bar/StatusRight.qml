@@ -59,16 +59,20 @@ RowLayout {
 
     property bool nmcliOk: true
     property bool netQueried: false
-    property string netIcon: "wifi_off"
+    property string netIcon: "signal_cellular_off"
 
     Text {
         visible: root.nmcliOk
         Layout.alignment: Qt.AlignVCenter
         text: root.netIcon
-        color: Theme.onSurfaceVariant
-        opacity: root.netIcon === "wifi_off" ? 0.6 : 1
+        color: Theme.onSurface
+        opacity: root.netIcon === "signal_cellular_off" ? 0.6 : 1
         font.family: Theme.iconFont
         font.pixelSize: 15
+
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
+        }
     }
 
     // Parse `nmcli -t` output: "wifi:connected:wlan0" style lines. Wi-Fi wins
@@ -78,7 +82,7 @@ RowLayout {
             .filter(l => l.endsWith(":connected") || l.includes(":connected:"))
             .map(l => l.split(":")[0]);
         if (connected.includes("wifi"))
-            root.netIcon = "wifi";
+            root.netIcon = "signal_cellular_alt";
         else if (connected.includes("ethernet"))
             root.netIcon = "lan";
         else
@@ -165,22 +169,25 @@ RowLayout {
             width: parent.width - 5
             height: parent.height
             radius: 4
-            color: "transparent"
-            border.width: 1.5
-            border.color: batt.low ? Theme.error : Theme.onSurfaceVariant
+            // solid pill like the reference; the level reads as the bright fill
+            color: Qt.rgba(1, 1, 1, 0.2)
 
             Rectangle {
                 id: fill
 
-                x: 2.5
-                y: 2.5
-                width: Math.max(0, (body.width - 5) * batt.pct)
-                height: body.height - 5
+                x: 2
+                y: 2
+                width: Math.max(0, (body.width - 4) * batt.pct)
+                height: body.height - 4
                 radius: 2
                 color: batt.low ? Theme.error : batt.charging ? Theme.primary : Theme.onSurface
 
                 Behavior on width {
                     NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
+
+                Behavior on color {
+                    ColorAnimation { duration: 200 }
                 }
             }
 

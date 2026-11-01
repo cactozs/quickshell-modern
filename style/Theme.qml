@@ -14,7 +14,7 @@ Singleton {
     id: root
 
     // ---- fonts ----
-    readonly property string fontFamily: "JetBrainsMono NF"
+    readonly property string fontFamily: "Google Sans"
     readonly property string iconFont: "Material Symbols Rounded"
 
     // ---- geometry ----

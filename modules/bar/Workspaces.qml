@@ -1,74 +1,74 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "."
 import "../../services"
 import "../../style"
 
-// Clickable workspace chips for one niri output. The active chip widens and
-// takes the matugen primary; an urgent chip gets an error-tinted outline.
-Row {
+// Workspace dots for one niri output, like the reference bar: every open
+// workspace is a little pill (taller than wide); the active one grows into
+// a taller dot and shrinks back when focus leaves. Click focuses the
+// workspace, hover gently scales a dot up, an urgent dot takes the error
+// color.
+//
+// niri events rebuild the workspace array, and a Repeater (even over a
+// ScriptModel) destroys and recreates every dot on each switch — too fast
+// for any Behavior to play. The dots are therefore a keyed pool (by
+// workspace idx) synced in place, so the height spring really runs.
+Item {
     id: root
 
     // niri output whose workspaces to show (the bar's screen).
     property string screenName
-    property int pillHeight: 28
 
-    spacing: 6
+    // inactive dots are little pills, the active one grows to pillHeight
+    readonly property int dotWidth: 8
+    readonly property int dotHeight: 10
+    readonly property int pillHeight: 16
+    readonly property int dotSpacing: 6
 
-    Repeater {
-        model: Niri.workspacesFor(root.screenName)
+    readonly property var model: Niri.workspacesFor(root.screenName)
 
-        delegate: Rectangle {
-            id: pill
+    implicitWidth: Math.max(0, model.length * (root.dotWidth + root.dotSpacing) - root.dotSpacing)
+    implicitHeight: root.pillHeight
 
-            required property var modelData
+    // workspace idx -> Dot
+    property var pool: ({})
 
-            readonly property bool active: modelData.is_active ?? false
-            readonly property bool urgent: modelData.is_urgent ?? false
+    Component {
+        id: dotComp
+        Dot {}
+    }
 
-            // The active chip shows the workspace name when niri has one
-            // beyond the bare index, everything else shows the index.
-            readonly property string label: {
-                const ws = pill.modelData;
-                if (pill.active) {
-                    const name = (ws.name ?? "").trim();
-                    if (name !== "" && name !== String(ws.idx))
-                        return name;
-                }
-                return String(ws.idx);
+    onModelChanged: syncDots()
+    Component.onCompleted: syncDots()
+
+    function syncDots(): void {
+        const alive = new Set();
+        for (let i = 0; i < model.length; i++) {
+            const ws = model[i];
+            alive.add(ws.idx);
+            let dot = pool[ws.idx];
+            if (!dot) {
+                dot = dotComp.createObject(root, {
+                    wsIdx: ws.idx,
+                    output: root.screenName,
+                    dimWidth: root.dotWidth,
+                    dimHeight: root.dotHeight,
+                    growHeight: root.pillHeight,
+                    active: ws.is_active ?? false,
+                    urgent: ws.is_urgent ?? false
+                });
+                pool[ws.idx] = dot;
             }
-
-            width: label.implicitWidth + 20
-            height: root.pillHeight
-            radius: height / 2
-            color: pill.active ? Theme.primary : "transparent"
-            border.width: pill.active ? 0 : 1
-            border.color: pill.urgent ? Theme.error : Theme.plateBorder
-            opacity: pill.active || pill.urgent ? 1 : 0.75
-
-            Behavior on width {
-                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-            }
-
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-
-            Text {
-                id: label
-
-                anchors.centerIn: parent
-                text: pill.label
-                color: pill.active ? Theme.onPrimary : Theme.onSurfaceVariant
-                font.family: Theme.fontFamily
-                font.pixelSize: 12
-                font.weight: pill.active ? Font.DemiBold : Font.Medium
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Niri.focusWorkspace(pill.modelData.idx, pill.modelData.output)
+            dot.active = ws.is_active ?? false;
+            dot.urgent = ws.is_urgent ?? false;
+            dot.x = i * (root.dotWidth + root.dotSpacing);
+        }
+        for (const key of Object.keys(pool)) {
+            if (!alive.has(Number(key))) {
+                pool[key].destroy();
+                delete pool[key];
             }
         }
     }
