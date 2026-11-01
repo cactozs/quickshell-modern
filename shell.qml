@@ -18,5 +18,5 @@ ShellRoot {
     }
 
     NotifToasts {}
-    NotifCenter {}
+    PanelScrim {}
 }

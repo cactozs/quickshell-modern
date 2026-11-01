@@ -20,7 +20,7 @@ Singleton {
     property string screen: ""
 
     // Width of the morphed plate; Bar.qml binds to this so the panel scrim
-    // (NotifCenter.qml) can cut its click-through hole without duplicating
+    // (PanelScrim.qml) can cut its click-through hole without duplicating
     // the constants.
     readonly property int plateWidth: Math.min(600,
         ((Quickshell.screens.find(s => s.name === root.screen)?.width ?? 1920)
@@ -40,7 +40,6 @@ Singleton {
         }
         LauncherState.shown = false;
         Wallpaper.shown = false;
-        Notifs.shown = false;
         QuickSettings.shown = false;
         if (screenName !== "")
             root.screen = screenName;

@@ -6,12 +6,13 @@ import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
 import "../bar"
+import "../notifs"
 import "../../style"
 import "../../services"
 
 // Quick settings / control center content: two sliders and four toggle
-// chips on top, then a six-tab strip (calendar, timer, stopwatch, weather,
-// media, power). Not a window of its own — the bar embeds this item and
+// chips on top, then a seven-tab strip (calendar, timer, stopwatch, weather,
+// media, notifications, power). Not a window of its own — the bar embeds this item and
 // morphs into it, same contract as Launcher.qml. Open state lives in
 // QuickSettings; the bar's empty space (or `qs ipc call quicksettings
 // toggleOn <output>`) toggles it. Timer/stopwatch/weather state lives here
@@ -31,7 +32,12 @@ Item {
     implicitHeight: card.implicitHeight
 
     readonly property int cardPadding: 14
-    property int currentTab: 0
+
+    // Selected tab, mirrored into the QuickSettings service so IPC (and
+    // Notifs.toggleCenter) can open the panel directly on a tab.
+    property int currentTab: QuickSettings.tab
+
+    onCurrentTabChanged: QuickSettings.tab = currentTab
 
     readonly property var tabs: [
         { icon: "calendar_month" },
@@ -39,6 +45,7 @@ Item {
         { icon: "stopwatch" },
         { icon: "partly_cloudy_day" },
         { icon: "music_note" },
+        { icon: "notifications" },
         { icon: "power_settings_new" }
     ]
 
@@ -562,8 +569,12 @@ Item {
                 visible: root.currentTab === 4
             }
 
-            PowerTab {
+            NotifsTab {
                 visible: root.currentTab === 5
+            }
+
+            PowerTab {
+                visible: root.currentTab === 6
             }
         }
     }
@@ -1358,6 +1369,102 @@ Item {
             }
         }
     }
+    }
+
+    // Notification history: DND and clear in the header, then the same
+    // pooled card list the toasts use. List caps at 55% of the screen and
+    // scrolls inside it.
+    component NotifsTab: Item {
+        id: notifs
+
+        width: parent.width
+        height: notifsCol.implicitHeight
+        visible: root.currentTab === 5
+
+        readonly property int maxListHeight: Math.round(
+            (Quickshell.screens.find(s => s.name === root.screenName)?.height ?? 900) * 0.55)
+
+        Column {
+            id: notifsCol
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            spacing: 10
+
+            RowLayout {
+                width: parent.width
+                spacing: 10
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Notifications"
+                    color: Theme.primary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                }
+
+                Text {
+                    text: Notifs.dnd ? "do_not_disturb_on" : "do_not_disturb_off"
+                    color: Theme.primary
+                    font.family: Theme.iconFont
+                    font.pixelSize: 17
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: Notifs.toggleDnd()
+                    }
+                }
+
+                Text {
+                    text: "delete_sweep"
+                    color: Theme.primary
+                    font.family: Theme.iconFont
+                    font.pixelSize: 17
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: Notifs.clear()
+                    }
+                }
+            }
+
+            Flickable {
+                id: notifsList
+
+                width: parent.width
+                height: Math.min(contentHeight, notifs.maxListHeight)
+                contentHeight: notifsCards.implicitHeight
+                clip: true
+
+                Column {
+                    id: notifsCards
+
+                    width: notifsList.width
+                    spacing: 8
+
+                    Text {
+                        visible: Notifs.list.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "All caught up"
+                        color: Theme.primary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    NotifColumn {
+                        model: Notifs.list
+                        width: parent.width
+                        spacing: 8
+                    }
+                }
+            }
+        }
     }
 
     component PowerTab: Item {

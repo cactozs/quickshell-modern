@@ -13,9 +13,12 @@ import "."
 PanelWindow {
     id: root
 
-    // Toasts hide while the center is open on this screen — both windows
-    // drop from the same spot and would overlap.
-    readonly property bool centerHere: Notifs.shown && Notifs.screen === (Quickshell.screens[0]?.name ?? "")
+    // Toasts hide while the notifications tab of the quick settings panel is
+    // open on this screen — the same list is on screen and a new toast would
+    // duplicate a card that is already visible.
+    readonly property bool centerHere: QuickSettings.shown
+        && QuickSettings.tab === Notifs.notifsTab
+        && QuickSettings.screen === (Quickshell.screens[0]?.name ?? "")
 
     visible: Notifs.popups.length > 0 && !centerHere
     screen: Quickshell.screens[0] ?? null

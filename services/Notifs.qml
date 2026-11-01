@@ -7,9 +7,9 @@ import Quickshell.Services.Notifications
 import QtQuick
 
 // Notification server + state: history list, popup toasts, DND. The toasts
-// window and the history center (modules/notifs/) bind to this; the bars'
-// bell buttons toggle the center. History is RAM-only (max 50) and resets on
-// reload — nothing on disk.
+// window binds to this; the history lives in the quick settings panel's
+// notifications tab. History is RAM-only (max 50) and resets on reload —
+// nothing on disk.
 Singleton {
     id: root
 
@@ -19,10 +19,9 @@ Singleton {
 
     readonly property bool dnd: state.dnd
 
-    // Center open state, same scheme as LauncherState: `screen` is the
-    // monitor whose bar was clicked. Opening one closes the other.
-    property bool shown: false
-    property string screen: ""
+    // Index of the notifications tab in QuickSettingsPanel's tab strip —
+    // must match the order there.
+    readonly property int notifsTab: 5
 
     component Notif: QtObject {
         property var src
@@ -54,20 +53,19 @@ Singleton {
         property bool dnd: false
     }
 
+    // The manager is the quick settings panel's notifications tab: toggling
+    // opens the panel on it, closes it if it's already there, or just jumps
+    // to it if the panel is open elsewhere.
     function toggleCenter(screenName: string): void {
-        if (root.shown) {
-            root.shown = false;
+        if (QuickSettings.shown) {
+            if (QuickSettings.tab === root.notifsTab)
+                QuickSettings.close();
+            else
+                QuickSettings.tab = root.notifsTab;
             return;
         }
-        LauncherState.shown = false;
-        Wallpaper.shown = false;
-        Clipboard.shown = false;
-        QuickSettings.shown = false;
-        if (screenName !== "")
-            root.screen = screenName;
-        else if (root.screen === "")
-            root.screen = Quickshell.screens[0]?.name ?? "";
-        root.shown = true;
+        QuickSettings.tab = root.notifsTab;
+        QuickSettings.toggle(screenName);
     }
 
     function toggleDnd(): void {
@@ -129,16 +127,6 @@ Singleton {
         }
     }
 
-    // The launcher morph owns the plate; never have both open on one monitor.
-    Connections {
-        target: LauncherState
-
-        function onShownChanged(): void {
-            if (LauncherState.shown)
-                root.shown = false;
-        }
-    }
-
     IpcHandler {
         target: "notifs"
 
@@ -151,7 +139,8 @@ Singleton {
         }
 
         function close(): void {
-            root.shown = false
+            if (QuickSettings.tab === root.notifsTab)
+                QuickSettings.close()
         }
 
         function clearAll(): void {

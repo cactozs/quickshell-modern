@@ -15,8 +15,12 @@ Singleton {
     property bool shown: false
     property string screen: ""
 
+    // Tab the morphed panel shows; QuickSettingsPanel mirrors its currentTab
+    // here so services/IPC can open the panel straight onto a tab.
+    property int tab: 0
+
     // Width of the morphed plate; Bar.qml binds to this so the panel scrim
-    // (NotifCenter.qml) can cut its click-through hole without duplicating
+    // (PanelScrim.qml) can cut its click-through hole without duplicating
     // the constants.
     readonly property int plateWidth: Math.min(640,
         ((Quickshell.screens.find(s => s.name === root.screen)?.width ?? 1920)
@@ -27,11 +31,10 @@ Singleton {
             root.shown = false;
             return;
         }
-        // all bar plates and the notif sheet share one morph
+        // all bar plates share one morph
         LauncherState.shown = false;
         Wallpaper.shown = false;
         Clipboard.shown = false;
-        Notifs.shown = false;
         // Empty target keeps the last used output; default to the first one.
         if (screenName !== "")
             root.screen = screenName;
