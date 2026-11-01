@@ -41,6 +41,7 @@ Singleton {
         LauncherState.shown = false;
         Wallpaper.shown = false;
         Notifs.shown = false;
+        QuickSettings.shown = false;
         if (screenName !== "")
             root.screen = screenName;
         else if (root.screen === "")

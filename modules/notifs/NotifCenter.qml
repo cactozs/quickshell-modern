@@ -25,10 +25,11 @@ PanelWindow {
     property bool notifHiding: false
 
     visible: Notifs.shown || LauncherState.shown || Wallpaper.shown || Clipboard.shown
-        || root.notifHiding
+        || QuickSettings.shown || root.notifHiding
     screen: Quickshell.screens.find(s => s.name === (Clipboard.shown ? Clipboard.screen
         : Wallpaper.shown ? Wallpaper.screen
-        : LauncherState.shown ? LauncherState.screen : Notifs.screen)) ?? null
+        : LauncherState.shown ? LauncherState.screen
+        : QuickSettings.shown ? QuickSettings.screen : Notifs.screen)) ?? null
 
     Connections {
         target: Notifs
@@ -77,7 +78,8 @@ PanelWindow {
     // applies at a time.
     readonly property int holeW: LauncherState.shown ? LauncherState.plateWidth
         : Wallpaper.shown ? Wallpaper.plateWidth
-        : Clipboard.shown ? Clipboard.plateWidth : 0
+        : Clipboard.shown ? Clipboard.plateWidth
+        : QuickSettings.shown ? QuickSettings.plateWidth : 0
     readonly property int holeX: root.holeW > 0
         ? Math.round((root.width - root.holeW) / 2) : 0
 
@@ -106,6 +108,8 @@ PanelWindow {
                 Notifs.shown = false;
             else if (Clipboard.shown)
                 Clipboard.close();
+            else if (QuickSettings.shown)
+                QuickSettings.close();
             else
                 Wallpaper.close();
         }

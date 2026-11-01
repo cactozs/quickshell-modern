@@ -9,6 +9,7 @@ import "../../style"
 import "../launcher"
 import "../wallpaper"
 import "../clipboard"
+import "../quicksettings"
 import "../osd"
 import "../../services"
 import "."
@@ -36,12 +37,14 @@ PanelWindow {
     // radius of the concave fillet connecting the plate sides to the top edge
     readonly property int flare: 14
 
-    // The plate morphs into the launcher, the wallpaper ribbon or the
-    // clipboard picker on the targeted monitor only.
+    // The plate morphs into the launcher, the wallpaper ribbon, the
+    // clipboard picker or the quick settings panel on the targeted monitor
+    // only.
     readonly property bool launcherOpen: LauncherState.shown && LauncherState.screen === modelData.name
     readonly property bool wallpaperOpen: Wallpaper.shown && Wallpaper.screen === modelData.name
     readonly property bool clipboardOpen: Clipboard.shown && Clipboard.screen === modelData.name
-    readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen
+    readonly property bool qsOpen: QuickSettings.shown && QuickSettings.screen === modelData.name
+    readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen || root.qsOpen
 
     // OSD (volume/brightness/caps/layout) replaces the whole bar content for
     // a beat; suppressed while a real panel is morphed open.
@@ -63,7 +66,8 @@ PanelWindow {
 
     implicitHeight: root.launcherOpen ? launcher.height
         : root.wallpaperOpen ? ribbon.height
-        : root.clipboardOpen ? clipPicker.height : Theme.barHeight
+        : root.clipboardOpen ? clipPicker.height
+        : root.qsOpen ? qsPanel.height : Theme.barHeight
 
     Behavior on implicitHeight {
         NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
@@ -76,7 +80,10 @@ PanelWindow {
     color: "transparent"
 
     WlrLayershell.namespace: "quickshell:bar"
-    WlrLayershell.keyboardFocus: root.panelOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // Only panels with a text input grab the keyboard; the quick settings
+    // panel must leave niri's own binds (volume keys, etc.) working.
+    WlrLayershell.keyboardFocus: (root.launcherOpen || root.clipboardOpen)
+        ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     mask: Region { item: plate }
 
@@ -100,6 +107,7 @@ PanelWindow {
         width: root.launcherOpen ? LauncherState.plateWidth
             : root.wallpaperOpen ? Wallpaper.plateWidth
             : root.clipboardOpen ? Clipboard.plateWidth
+            : root.qsOpen ? QuickSettings.plateWidth
             : root.osdOpen ? osd.implicitWidth + root.padH * 2
             : contentRow.implicitWidth + root.padH * 2
         clip: true
@@ -114,6 +122,17 @@ PanelWindow {
             height: parent.height + Theme.radiusLG
             radius: Theme.radiusLG
             color: Theme.plate
+        }
+
+        // Click anywhere on the bar's empty space to open the quick settings
+        // panel. The widgets' own areas sit above this and consume their
+        // clicks; while a panel or the OSD is morphed, this stays off so a
+        // stray click can't fight the open content.
+        MouseArea {
+            anchors.fill: parent
+            enabled: !root.panelOpen && !root.osdOpen
+
+            onClicked: QuickSettings.toggle(root.modelData.name)
         }
 
         // Left and right sections pinned to the ends, the clock truly
@@ -219,6 +238,29 @@ PanelWindow {
             active: root.clipboardOpen
 
             opacity: root.clipboardOpen ? 1 : 0
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: 50 }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                }
+            }
+        }
+
+        // The quick settings panel: same morph, toggled by clicking the
+        // bar's empty space.
+        QuickSettingsPanel {
+            id: qsPanel
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            visible: root.qsOpen
+            active: root.qsOpen
+            screenName: root.modelData.name
+
+            opacity: root.qsOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
                     PauseAnimation { duration: 50 }

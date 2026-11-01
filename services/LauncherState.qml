@@ -28,6 +28,7 @@ Singleton {
         }
         Wallpaper.shown = false; // the two bar plates share one morph
         Clipboard.shown = false;
+        QuickSettings.shown = false;
         // Empty target keeps the last used output; default to the first one.
         if (screenName !== "")
             root.screen = screenName;
