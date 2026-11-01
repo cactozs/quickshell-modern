@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 
 import Quickshell
 import Quickshell.Io
+import "../style"
 
 // Open state of the launcher. The per-monitor bars bind to this: the one
 // whose screen name matches morphs into the launcher. Driven by the niri
@@ -12,6 +13,13 @@ Singleton {
 
     property bool shown: false
     property string screen: ""
+
+    // Width of the morphed plate; Bar.qml binds to this so the panel scrim
+    // (NotifCenter.qml) can cut its click-through hole without duplicating
+    // the constants.
+    readonly property int plateWidth: Math.min(860,
+        ((Quickshell.screens.find(s => s.name === root.screen)?.width ?? 1920)
+         - Theme.barSideMargin * 2) - 160)
 
     function toggle(screenName: string): void {
         if (root.shown) {

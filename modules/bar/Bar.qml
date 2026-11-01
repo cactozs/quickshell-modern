@@ -76,7 +76,7 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         height: parent.height
         width: root.launcherOpen
-            ? Math.min(860, parent.width - 160)
+            ? LauncherState.plateWidth
             : contentRow.implicitWidth + root.padH * 2
         clip: true
 
@@ -130,6 +130,7 @@ PanelWindow {
 
             StatusRight {
                 Layout.alignment: Qt.AlignVCenter
+                screenName: root.modelData.name
             }
         }
 

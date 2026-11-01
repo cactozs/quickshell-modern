@@ -6,33 +6,52 @@ import Quickshell.Services.UPower
 import QtQuick
 import QtQuick.Layouts
 import "../../style"
+import "../../services"
 
-// Right status row: a notification placeholder ("All caught up" until the
-// notification center lands), the network icon and a custom battery pill.
+// Right status row: the notification bell, the network icon and a custom
+// battery pill.
 RowLayout {
     id: root
 
+    property string screenName: ""
+
     spacing: 14
 
-    // ---- notifications (placeholder) ----
+    // ---- notifications ----
 
-    Row {
-        spacing: 6
+    Item {
+        id: bell
 
-        Text {
+        implicitWidth: bellRow.implicitWidth
+        implicitHeight: bellRow.implicitHeight
+
+        Row {
+            id: bellRow
+
             anchors.verticalCenter: parent.verticalCenter
-            text: "notifications"
-            color: Theme.onSurfaceVariant
-            font.family: Theme.iconFont
-            font.pixelSize: 15
+            spacing: 6
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Notifs.dnd ? "notifications_off" : "notifications"
+                color: Notifs.unread > 0 ? Theme.onSurface : Theme.onSurfaceVariant
+                font.family: Theme.iconFont
+                font.pixelSize: 15
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Notifs.unread > 0
+                text: Notifs.unread
+                color: Theme.onSurfaceVariant
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+            }
         }
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "All caught up"
-            color: Theme.onSurfaceVariant
-            font.family: Theme.fontFamily
-            font.pixelSize: 11
+        MouseArea {
+            anchors.fill: parent
+            onClicked: Notifs.toggleCenter(root.screenName)
         }
     }
 

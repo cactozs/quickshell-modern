@@ -1,4 +1,5 @@
 import "modules/bar"
+import "modules/notifs"
 import Quickshell
 
 ShellRoot {
@@ -7,4 +8,7 @@ ShellRoot {
 
         Bar {}
     }
+
+    NotifToasts {}
+    NotifCenter {}
 }
