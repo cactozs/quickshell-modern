@@ -10,9 +10,10 @@ import "../notifs"
 import "../../style"
 import "../../services"
 
-// Quick settings / control center content: two sliders and four toggle
-// chips on top, then a seven-tab strip (calendar, timer, stopwatch, weather,
-// media, notifications, power). Not a window of its own — the bar embeds this item and
+// Quick settings / control center content: two sliders and four chips on
+// top (the Wi-Fi chip opens the networks view instead of toggling), then a
+// seven-tab strip (calendar, timer, stopwatch, weather, media, notifications,
+// power) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
 // morphs into it, same contract as Launcher.qml. Open state lives in
 // QuickSettings; the bar's empty space (or `qs ipc call quicksettings
 // toggleOn <output>`) toggles it. Timer/stopwatch/weather state lives here
@@ -37,7 +38,23 @@ Item {
     // Notifs.toggleCenter) can open the panel directly on a tab.
     property int currentTab: QuickSettings.tab
 
-    onCurrentTabChanged: QuickSettings.tab = currentTab
+    onCurrentTabChanged: {
+        QuickSettings.tab = currentTab;
+        if (currentTab === 7) {
+            if (root.active)
+                root.wifiRefresh();
+        } else {
+            // leaving the view hides the password input and releases the keyboard
+            root.wifiPasswordFor = "";
+        }
+    }
+
+    // The bar grabs the keyboard only while the wifi password input needs it.
+    onWifiPasswordForChanged: {
+        QuickSettings.wantsKeyboard = root.wifiPasswordFor !== "";
+        if (root.wifiPasswordFor === "")
+            root.wifiError = "";
+    }
 
     readonly property var tabs: [
         { icon: "calendar_month" },
@@ -80,6 +97,15 @@ Item {
     property bool btAvailable: true
     property bool btQueried: false
     property bool btOn: false
+
+    // ---- wifi networks view state (the chip's view, tab 7) ----
+    property var wifiNetworks: []        // scanned APs: {ssid, signal, secured, inUse}
+    property var wifiSaved: []           // saved profiles: {name}
+    property bool wifiScanning: false
+    property string wifiActiveIface: ""  // connected interface, for disconnect
+    property string wifiPasswordFor: ""  // ssid awaiting a password; shows the input
+    property string wifiConnecting: ""
+    property string wifiError: ""
 
     // ---- helpers ----
 
@@ -216,6 +242,7 @@ Item {
     function setWifi(enable: bool): void {
         Quickshell.execDetached(["nmcli", "radio", "wifi", enable ? "on" : "off"]);
         wifiRequery.restart();
+        wifiKick.restart();
     }
 
     function setBt(enable: bool): void {
@@ -223,15 +250,125 @@ Item {
         btRequery.restart();
     }
 
-    // Opening this monitor's panel refreshes the lazy chip state and weather.
-    onActiveChanged: {
-        if (!root.active)
+    // ---- wifi networks view ----
+
+    function wifiSignalIcon(signal: int): string {
+        // no wifi_3_bar glyph in Material Symbols Rounded; network_wifi_3_bar is
+        return signal > 80 ? "wifi" : signal > 60 ? "network_wifi_3_bar"
+            : signal > 35 ? "wifi_2_bar" : "wifi_1_bar";
+    }
+
+    function wifiRefresh(): void {
+        if (root.wifiScanning)
             return;
-        if (root.wifiAvailable)
-            wifiQuery.running = true;
-        if (root.btAvailable)
-            btQuery.running = true;
-        weatherKick.restart();
+        root.wifiScanning = true;
+        wifiScanProc.running = true;
+        wifiMetaProc.running = true;
+    }
+
+    function wifiConnectTo(ssid: string, password: string): void {
+        if (root.wifiConnecting !== "")
+            return;
+        root.wifiConnecting = ssid;
+        root.wifiError = "";
+        // shortcut: the password travels on argv and is visible in ps for the
+        // seconds nmcli runs; upgrade when Process gains stdin support
+        const cmd = ["nmcli", "device", "wifi", "connect", ssid];
+        if (password !== "")
+            cmd.push("password", password);
+        wifiConnectProc.command = cmd;
+        wifiConnectProc.running = true;
+    }
+
+    function wifiDisconnect(): void {
+        if (root.wifiActiveIface === "")
+            return;
+        Quickshell.execDetached(["nmcli", "device", "disconnect", root.wifiActiveIface]);
+        wifiKick.restart();
+    }
+
+    function wifiForget(name: string): void {
+        Quickshell.execDetached(["nmcli", "connection", "delete", name]);
+        wifiKick.restart();
+    }
+
+    function wifiClicked(net: var): void {
+        if (net.inUse || root.wifiConnecting !== "")
+            return;
+        root.wifiError = "";
+        if (net.secured)
+            root.wifiPasswordFor = net.ssid;
+        else
+            root.wifiConnectTo(net.ssid, "");
+    }
+
+    // nmcli terse output escapes ":" and "\" as "\:" and "\\". IN-USE, SIGNAL
+    // and SECURITY never contain colons, so the first two and the last colon
+    // are fixed boundaries and everything between them is the SSID.
+    function applyScan(text: string): void {
+        const best = {};
+        for (const line of text.split("\n")) {
+            const i1 = line.indexOf(":");
+            const i2 = line.indexOf(":", i1 + 1);
+            const i3 = line.lastIndexOf(":");
+            if (i1 < 1 || i2 < 0 || i3 <= i2)
+                continue;
+            const ssid = line.slice(i2 + 1, i3).replace(/\\(.)/g, "$1");
+            if (ssid === "")
+                continue; // hidden AP
+            const net = {
+                inUse: line.slice(0, i1) === "*",
+                signal: parseInt(line.slice(i1 + 1, i2)) || 0,
+                ssid: ssid,
+                secured: line.slice(i3 + 1) !== ""
+            };
+            const old = best[ssid];
+            // the in-use BSSID wins over a stronger sibling of the same ssid
+            if (!old
+                || (net.inUse && !old.inUse)
+                || (!old.inUse && !net.inUse && net.signal > old.signal))
+                best[ssid] = net;
+        }
+        root.wifiNetworks = Object.values(best).sort((a, b) =>
+            a.inUse !== b.inUse ? (a.inUse ? -1 : 1) : b.signal - a.signal);
+    }
+
+    // One `connection show` query yields both the saved wireless profiles and
+    // the active one (only an active profile has its DEVICE filled in).
+    function applyMeta(text: string): void {
+        const saved = [];
+        let iface = "";
+        for (const line of text.split("\n")) {
+            const i3 = line.lastIndexOf(":");
+            const i2 = line.lastIndexOf(":", i3 - 1);
+            if (i2 < 0 || i3 <= i2)
+                continue;
+            if (!line.slice(i2 + 1, i3).includes("wireless"))
+                continue;
+            saved.push({ name: line.slice(0, i2).replace(/\\(.)/g, "$1") });
+            const device = line.slice(i3 + 1);
+            if (device !== "" && iface === "")
+                iface = device;
+        }
+        root.wifiSaved = saved;
+        root.wifiActiveIface = iface;
+    }
+
+    // Opening this monitor's panel refreshes the lazy chip state and weather;
+    // closing drops the transient wifi view state (and the keyboard grab).
+    onActiveChanged: {
+        if (root.active) {
+            if (root.wifiAvailable)
+                wifiQuery.running = true;
+            if (root.btAvailable)
+                btQuery.running = true;
+            weatherKick.restart();
+            if (root.currentTab === 7)
+                root.wifiRefresh();
+        } else {
+            root.wifiPasswordFor = "";
+            root.wifiError = "";
+        }
     }
 
     Component.onCompleted: {
@@ -296,6 +433,23 @@ Item {
         onTriggered: btQuery.running = true
     }
 
+    Timer {
+        id: wifiKick
+
+        // execDetached has no completion callback: catch state changes from
+        // disconnect/forget/radio-toggle a beat later
+        interval: 1200
+        onTriggered: root.wifiRefresh()
+    }
+
+    Timer {
+        interval: 15000
+        repeat: true
+        running: root.active && root.currentTab === 7
+
+        onTriggered: root.wifiRefresh()
+    }
+
     Process {
         id: weatherProc
 
@@ -339,6 +493,45 @@ Item {
                 root.btAvailable = true;
                 root.btOn = text.includes("Powered: yes");
             }
+        }
+    }
+
+    // Visible APs; --rescan yes forces a fresh scan and blocks until it is
+    // done. Empty stdout (radio off, transient failure) keeps the old list.
+    Process {
+        id: wifiScanProc
+
+        command: ["nmcli", "-t", "-f", "IN-USE,SIGNAL,SSID,SECURITY", "device", "wifi", "list", "--rescan", "yes"]
+
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim() !== "") root.applyScan(text)
+        }
+
+        onExited: root.wifiScanning = false
+    }
+
+    Process {
+        id: wifiMetaProc
+
+        command: ["nmcli", "-t", "-f", "NAME,TYPE,DEVICE", "connection", "show"]
+
+        stdout: StdioCollector {
+            onStreamFinished: root.applyMeta(text)
+        }
+    }
+
+    // command is set imperatively per connection attempt in wifiConnectTo().
+    Process {
+        id: wifiConnectProc
+
+        onExited: exitCode => {
+            root.wifiConnecting = "";
+            if (exitCode !== 0) {
+                root.wifiError = "Could not connect — check the password";
+                return;
+            }
+            root.wifiPasswordFor = "";
+            root.wifiRefresh();
         }
     }
 
@@ -473,7 +666,8 @@ Item {
                         label: "Wi-Fi"
                         checked: root.wifiOn
 
-                        onToggled: root.setWifi(!root.wifiOn)
+                        // opens the networks view (tab 7) instead of toggling
+                        onToggled: root.currentTab = 7
                     }
 
                     QsChip {
@@ -575,6 +769,10 @@ Item {
 
             PowerTab {
                 visible: root.currentTab === 6
+            }
+
+            WifiTab {
+                visible: root.currentTab === 7
             }
         }
     }
@@ -716,7 +914,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: chip.icon
-                color: chip.checked ? Theme.onPrimary : Theme.primary
+                color: chip.checked ? Theme.containerText : Theme.primary
                 font.family: Theme.iconFont
                 font.pixelSize: 16
             }
@@ -724,7 +922,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: chip.label
-                color: chip.checked ? Theme.onPrimary : Theme.onSurface
+                color: chip.checked ? Theme.containerText : Theme.onSurface
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 font.weight: chip.checked ? Font.DemiBold : Font.Medium
@@ -763,7 +961,7 @@ Item {
 
             anchors.centerIn: parent
             text: pill.label
-            color: pill.accent ? Theme.onPrimary : Theme.onSurface
+            color: pill.accent ? Theme.containerText : Theme.onSurface
             font.family: Theme.fontFamily
             font.pixelSize: 12
             font.weight: Font.Medium
@@ -1467,10 +1665,384 @@ Item {
         }
     }
 
+    // Wi-Fi networks view, opened by the Wi-Fi chip (tab 7, no strip icon):
+    // visible APs first, then saved profiles. The password input lives here —
+    // the bar grabs the keyboard only while it is visible.
+    component WifiTab: Item {
+        id: wifiView
+
+        width: parent.width
+        height: wifiCol.implicitHeight
+        visible: root.currentTab === 7
+
+        readonly property int maxListHeight: Math.round(
+            (Quickshell.screens.find(s => s.name === root.screenName)?.height ?? 900) * 0.45)
+
+        // layer surfaces take a beat to receive keyboard focus
+        Timer {
+            id: pwFocusKick
+
+            interval: 50
+            onTriggered: pwInput.forceActiveFocus()
+        }
+
+        Column {
+            id: wifiCol
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            spacing: 10
+
+            RowLayout {
+                width: parent.width
+                spacing: 10
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Wi-Fi"
+                    color: Theme.primary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                }
+
+                Text {
+                    text: root.wifiOn ? "wifi" : "wifi_off"
+                    color: Theme.primary
+                    font.family: Theme.iconFont
+                    font.pixelSize: 17
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: root.setWifi(!root.wifiOn)
+                    }
+                }
+
+                Text {
+                    text: "refresh"
+                    color: Theme.primary
+                    opacity: root.wifiScanning ? 0.4 : 1
+                    font.family: Theme.iconFont
+                    font.pixelSize: 17
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: root.wifiRefresh()
+                    }
+                }
+            }
+
+            Text {
+                visible: root.wifiError !== ""
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: root.wifiError
+                color: Theme.error
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+            }
+
+            Text {
+                visible: root.wifiConnecting !== ""
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: "Connecting to " + root.wifiConnecting + "\u2026"
+                color: Theme.onSurfaceVariant
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+            }
+
+            Rectangle {
+                visible: root.wifiPasswordFor !== ""
+                width: parent.width
+                height: 34
+                radius: Theme.radiusMD
+                color: Theme.surfaceContainerHigh
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 4
+                    spacing: 8
+
+                    Text {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "lock"
+                        color: Theme.onSurfaceVariant
+                        font.family: Theme.iconFont
+                        font.pixelSize: 16
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: pwInput.text === ""
+                            text: "Password for " + root.wifiPasswordFor
+                            color: Theme.onSurfaceVariant
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 13
+                        }
+
+                        TextInput {
+                            id: pwInput
+
+                            anchors.fill: parent
+                            color: Theme.onSurface
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 13
+                            echoMode: TextInput.Password
+                            selectByMouse: true
+                            selectionColor: Theme.primary
+                            selectedTextColor: Theme.containerText
+                            focus: root.wifiPasswordFor !== ""
+
+                            onAccepted: root.wifiConnectTo(root.wifiPasswordFor, text)
+                            Keys.onEscapePressed: root.wifiPasswordFor = ""
+
+                            onVisibleChanged: {
+                                if (visible) {
+                                    text = "";
+                                    pwFocusKick.restart();
+                                }
+                            }
+                        }
+                    }
+
+                    PillButton {
+                        Layout.alignment: Qt.AlignVCenter
+                        accent: true
+                        label: "Connect"
+
+                        onClicked: root.wifiConnectTo(root.wifiPasswordFor, pwInput.text)
+                    }
+                }
+            }
+
+            Flickable {
+                id: wifiList
+
+                width: parent.width
+                height: Math.min(contentHeight, wifiView.maxListHeight)
+                contentHeight: wifiCards.implicitHeight
+                clip: true
+
+                Column {
+                    id: wifiCards
+
+                    width: wifiList.width
+                    spacing: 6
+
+                    Text {
+                        visible: !root.wifiOn
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Wi-Fi is off"
+                        color: Theme.onSurfaceVariant
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        visible: root.wifiOn && root.wifiScanning && root.wifiNetworks.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Scanning\u2026"
+                        color: Theme.onSurfaceVariant
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        visible: root.wifiOn && !root.wifiScanning && root.wifiNetworks.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "No networks found"
+                        color: Theme.onSurfaceVariant
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    Repeater {
+                        model: root.wifiNetworks
+
+                        delegate: WifiRow {}
+                    }
+
+                    Text {
+                        visible: root.wifiSaved.length > 0
+                        text: "Saved"
+                        color: Theme.onSurfaceVariant
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 11
+                    }
+
+                    Repeater {
+                        model: root.wifiSaved
+
+                        delegate: SavedRow {}
+                    }
+                }
+            }
+        }
+    }
+
+    // One scanned network: signal icon, ssid, lock, check when connected.
+    // Deliberately animation-free — the Repeater recreates rows on every scan;
+    // the password input lives above the list, so it survives rebuilds.
+    component WifiRow: Rectangle {
+        id: netRow
+
+        required property var modelData
+
+        width: parent.width
+        height: 34
+        radius: Theme.radiusMD
+        color: netArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+        opacity: root.wifiConnecting === netRow.modelData.ssid ? 0.5 : 1
+
+        MouseArea {
+            id: netArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+
+            onClicked: root.wifiClicked(netRow.modelData)
+        }
+
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.wifiSignalIcon(netRow.modelData.signal)
+                color: netRow.modelData.inUse ? Theme.primary : Theme.onSurfaceVariant
+                font.family: Theme.iconFont
+                font.pixelSize: 17
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                width: netRow.width - 150
+                text: netRow.modelData.ssid
+                color: Theme.onSurface
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+                elide: Text.ElideRight
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: netRow.modelData.secured
+                text: "lock"
+                color: Theme.onSurfaceVariant
+                font.family: Theme.iconFont
+                font.pixelSize: 13
+            }
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: netRow.modelData.inUse && root.wifiConnecting === ""
+                text: "check"
+                color: Theme.primary
+                font.family: Theme.iconFont
+                font.pixelSize: 17
+            }
+
+            PillButton {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: netRow.modelData.inUse
+                label: "Disconnect"
+
+                onClicked: root.wifiDisconnect()
+            }
+        }
+    }
+
+    // One saved profile: name plus a delete (forget) button. The row itself
+    // only highlights — forgetting is deliberate, via the button.
+    component SavedRow: Rectangle {
+        id: savedRow
+
+        required property var modelData
+
+        width: parent.width
+        height: 30
+        radius: Theme.radiusMD
+        color: savedArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+
+        MouseArea {
+            id: savedArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+        }
+
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "bookmark"
+                color: Theme.onSurfaceVariant
+                font.family: Theme.iconFont
+                font.pixelSize: 15
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                width: savedRow.width - 130
+                text: savedRow.modelData.name
+                color: Theme.onSurfaceVariant
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+                elide: Text.ElideRight
+            }
+        }
+
+        Text {
+            anchors.right: parent.right
+            anchors.rightMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            text: "delete"
+            color: Theme.onSurfaceVariant
+            font.family: Theme.iconFont
+            font.pixelSize: 16
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+
+                onClicked: root.wifiForget(savedRow.modelData.name)
+            }
+        }
+    }
+
     component PowerTab: Item {
         width: parent.width
         height: powerCol.implicitHeight
-        visible: root.currentTab === 5
+        visible: root.currentTab === 6
 
         Column {
             id: powerCol

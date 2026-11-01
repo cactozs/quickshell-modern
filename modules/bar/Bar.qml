@@ -81,8 +81,10 @@ PanelWindow {
 
     WlrLayershell.namespace: "quickshell:bar"
     // Only panels with a text input grab the keyboard; the quick settings
-    // panel must leave niri's own binds (volume keys, etc.) working.
-    WlrLayershell.keyboardFocus: (root.launcherOpen || root.clipboardOpen)
+    // panel does so only while its wifi password field is up, so niri's own
+    // binds (volume keys, etc.) keep working the rest of the time.
+    WlrLayershell.keyboardFocus: (root.launcherOpen || root.clipboardOpen
+        || (root.qsOpen && QuickSettings.wantsKeyboard))
         ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     mask: Region { item: plate }

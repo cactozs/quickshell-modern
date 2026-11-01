@@ -35,6 +35,9 @@ Singleton {
     readonly property color onPrimary: json.on_primary
     readonly property color secondary: json.secondary
     readonly property color primaryContainer: json.primary_container
+    // pinned white (user request): content on active chips/buttons must read
+    // on the dark container regardless of what matugen puts here
+    readonly property color containerText: "#ffffffff"
     readonly property color onSurface: json.on_surface
     readonly property color onSurfaceVariant: json.on_surface_variant
     readonly property color surfaceContainerHigh: json.surface_container_high
