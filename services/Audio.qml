@@ -74,7 +74,10 @@ Singleton {
     Process {
         id: events
 
-        command: ["pactl", "subscribe"]
+        // stdbuf -oL: pactl block-buffers stdout, so a daemon orphaned by a
+        // shell kill would linger forever; line-buffered it dies of EPIPE on
+        // the next audio event instead.
+        command: ["stdbuf", "-oL", "pactl", "subscribe"]
         running: true
 
         stdout: SplitParser {

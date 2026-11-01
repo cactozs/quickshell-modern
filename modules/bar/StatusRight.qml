@@ -63,81 +63,20 @@ RowLayout {
 
     // ---- network ----
 
-    property bool nmcliOk: true
-    property bool netQueried: false
-    property string netIcon: "signal_cellular_off"
+    // State lives in the Net singleton — one `nmcli monitor` daemon serves
+    // every StatusRight copy (bar + the quick settings mirror).
 
     Text {
-        visible: root.nmcliOk
+        visible: Net.available
         Layout.alignment: Qt.AlignVCenter
-        text: root.netIcon
+        text: Net.icon
         color: Theme.primary
-        opacity: root.netIcon === "signal_cellular_off" ? 0.6 : 1
+        opacity: Net.icon === "signal_cellular_off" ? 0.6 : 1
         font.family: Theme.iconFont
         font.pixelSize: 17
 
         Behavior on opacity {
             NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-        }
-    }
-
-    // Parse `nmcli -t` output: "wifi:connected:wlan0" style lines. Wi-Fi wins
-    // over ethernet; no connected device shows the off glyph.
-    function applyNetState(output: string): void {
-        const connected = output.trim().split("\n")
-            .filter(l => l.endsWith(":connected") || l.includes(":connected:"))
-            .map(l => l.split(":")[0]);
-        if (connected.includes("wifi"))
-            root.netIcon = "signal_cellular_alt";
-        else if (connected.includes("ethernet"))
-            root.netIcon = "lan";
-        else
-            root.netIcon = "wifi_off";
-    }
-
-    function refreshNet(): void {
-        if (netQuery.running)
-            netQuery.running = false;
-        netQuery.running = true;
-    }
-
-    Process {
-        id: netQuery
-        command: ["nmcli", "-t", "-f", "TYPE,STATE,DEVICE", "device", "status"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.netQueried = true;
-                root.applyNetState(text);
-            }
-        }
-
-        onExited: exitCode => {
-            if (exitCode !== 0)
-                root.nmcliOk = false;
-        }
-    }
-
-    // nmcli emits a line per state change; each one re-runs the one-shot query.
-    Process {
-        id: netMonitor
-        command: ["nmcli", "monitor"]
-        running: true
-
-        stdout: SplitParser {
-            onRead: () => root.refreshNet()
-        }
-    }
-
-    // QProcess never emits onExited for a missing binary; if nothing answered
-    // in the first seconds, assume nmcli is absent and hide the icon.
-    Timer {
-        interval: 4000
-        repeat: true
-        running: true
-        onTriggered: {
-            if (!root.netQueried)
-                root.nmcliOk = false;
         }
     }
 
@@ -164,6 +103,4 @@ RowLayout {
         font.family: Theme.iconFont
         font.pixelSize: 17
     }
-
-    Component.onCompleted: refreshNet()
 }
