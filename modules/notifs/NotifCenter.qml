@@ -20,9 +20,34 @@ PanelWindow {
 
     readonly property int maxListHeight: Math.round((root.screen?.height ?? 900) * 0.55)
 
-    visible: Notifs.shown || LauncherState.shown || Wallpaper.shown
+    // The plate drops in and fades back out; the window (shared with the
+    // launcher/wallpaper scrim) lingers briefly so the exit can play.
+    property bool notifHiding: false
+
+    visible: Notifs.shown || LauncherState.shown || Wallpaper.shown || root.notifHiding
     screen: Quickshell.screens.find(s => s.name === (Wallpaper.shown ? Wallpaper.screen
         : LauncherState.shown ? LauncherState.screen : Notifs.screen)) ?? null
+
+    Connections {
+        target: Notifs
+
+        function onShownChanged(): void {
+            if (Notifs.shown) {
+                root.notifHiding = false;
+                hideKick.stop();
+            } else {
+                root.notifHiding = true;
+                hideKick.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: hideKick
+
+        interval: 300
+        onTriggered: root.notifHiding = false
+    }
 
     anchors {
         left: true
@@ -86,7 +111,22 @@ PanelWindow {
     Item {
         id: plate
 
-        visible: Notifs.shown
+        visible: Notifs.shown || root.notifHiding
+        opacity: Notifs.shown ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+        }
+
+        // sheet drop from under the bar, one soft delivery bounce
+        transform: Translate {
+            y: Notifs.shown ? 0 : -14
+
+            Behavior on y {
+                SpringAnimation { spring: 4; damping: 0.6; mass: 0.4 }
+            }
+        }
+
         anchors {
             top: parent.top
             right: parent.right
@@ -108,6 +148,7 @@ PanelWindow {
         // to the scrim and close the center.
         MouseArea {
             anchors.fill: parent
+            enabled: Notifs.shown
         }
 
         RowLayout {
@@ -189,15 +230,10 @@ PanelWindow {
                     font.pixelSize: 12
                 }
 
-                Repeater {
+                NotifColumn {
                     model: Notifs.list
-
-                    NotifCard {
-                        required property var modelData
-
-                        model: modelData
-                        width: cardsCol.width
-                    }
+                    width: parent.width
+                    spacing: 8
                 }
             }
         }

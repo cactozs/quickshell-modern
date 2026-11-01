@@ -82,6 +82,14 @@ Item {
 
             delegate: Thumb {}
 
+            // wheel glides instead of jumping; disabled while the user is
+            // dragging or a flick is decelerating so those stay 1:1
+            Behavior on contentX {
+                enabled: !strip.dragging && !strip.flicking
+
+                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            }
+
             Text {
                 anchors.centerIn: parent
                 visible: strip.count === 0
@@ -120,7 +128,7 @@ Item {
         border.color: Theme.primary
 
         Behavior on border.width {
-            NumberAnimation { duration: 120 }
+            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
         }
 
         Image {

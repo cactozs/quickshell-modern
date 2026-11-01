@@ -58,7 +58,7 @@ PanelWindow {
         : root.wallpaperOpen ? ribbon.height : Theme.barHeight
 
     Behavior on implicitHeight {
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
     }
 
     exclusionMode: ExclusionMode.Normal
@@ -86,7 +86,7 @@ PanelWindow {
         clip: true
 
         Behavior on width {
-            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
         }
 
         Rectangle {
@@ -113,7 +113,7 @@ PanelWindow {
             Behavior on opacity {
                 // fade the bar widgets out fast so they don't linger through
                 // the morph
-                NumberAnimation { duration: 80 }
+                NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
             }
 
             Workspaces {
@@ -159,8 +159,8 @@ PanelWindow {
             opacity: root.launcherOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 60 }
-                    NumberAnimation { duration: 150 }
+                    PauseAnimation { duration: 50 }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
                 }
             }
         }
@@ -181,8 +181,8 @@ PanelWindow {
             opacity: root.wallpaperOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 60 }
-                    NumberAnimation { duration: 150 }
+                    PauseAnimation { duration: 50 }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
                 }
             }
         }

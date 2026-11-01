@@ -10,11 +10,17 @@ import "../../services"
 // One notification card, shared by the toasts and the center. `compact` is
 // toast mode: clipped body and click-to-hide. Body text is forced to
 // PlainText — it comes from arbitrary apps.
+//
+// Entrance/exit: the card grows out of / collapses into its slot (height)
+// while fading, so neighbors glide after it. `shown`/`exiting` are flipped
+// by NotifColumn (pool) or by exitAnimated().
 Rectangle {
     id: card
 
     required property var model
     property bool compact: false
+    property bool shown: false
+    property bool exiting: false
 
     radius: Theme.radiusMD
     color: compact ? Theme.plate : Theme.surfaceContainerHigh
@@ -22,12 +28,44 @@ Rectangle {
     border.color: model.critical ? Theme.error : Theme.plateBorder
 
     implicitHeight: bodyCol.implicitHeight + 20
+    height: !shown || exiting ? 0 : implicitHeight
+    opacity: !shown || exiting ? 0 : 1
+
+    Behavior on height {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+    }
+
+    Behavior on opacity {
+        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+    }
+
+    // Animate out, then either unpopup (toast click / expired toast — the
+    // write is a no-op when it already left) or dismiss (center's X).
+    function exitAnimated(): void {
+        if (card.exiting)
+            return;
+        card.exiting = true;
+        exitKick.restart();
+    }
+
+    Timer {
+        id: exitKick
+
+        interval: 240
+        onTriggered: {
+            if (card.compact)
+                card.model.popup = false;
+            else
+                Notifs.dismiss(card.model);
+            card.destroy();
+        }
+    }
 
     // Clicking a toast only hides the popup; it stays in history.
     MouseArea {
         anchors.fill: parent
         enabled: card.compact
-        onClicked: card.model.popup = false
+        onClicked: card.exitAnimated()
     }
 
     RowLayout {
@@ -105,7 +143,7 @@ Rectangle {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: Notifs.dismiss(card.model)
+                        onClicked: card.exitAnimated()
                     }
                 }
             }

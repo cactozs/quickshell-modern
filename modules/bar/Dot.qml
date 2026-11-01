@@ -24,15 +24,16 @@ Rectangle {
     scale: ma.containsMouse ? 1.25 : 1
 
     Behavior on height {
-        SpringAnimation { spring: 4; damping: 0.45; mass: 0.4 }
+        // one soft overshoot, not a wobble
+        SpringAnimation { spring: 4; damping: 0.65; mass: 0.4 }
     }
 
     Behavior on color {
-        ColorAnimation { duration: 150 }
+        ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
     }
 
     Behavior on scale {
-        NumberAnimation { duration: 120 }
+        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
     }
 
     MouseArea {

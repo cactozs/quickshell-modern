@@ -43,7 +43,7 @@ PanelWindow {
         item: cards
     }
 
-    Column {
+    NotifColumn {
         id: cards
 
         x: 4
@@ -51,16 +51,7 @@ PanelWindow {
         width: parent.width - 8
         spacing: 8
 
-        Repeater {
-            model: Notifs.popups
-
-            NotifCard {
-                required property var modelData
-
-                model: modelData
-                compact: true
-                width: parent.width
-            }
-        }
+        model: Notifs.popups
+        compact: true
     }
 }

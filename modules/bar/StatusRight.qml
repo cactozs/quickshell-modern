@@ -71,7 +71,7 @@ RowLayout {
         font.pixelSize: 17
 
         Behavior on opacity {
-            NumberAnimation { duration: 150 }
+            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
         }
     }
 

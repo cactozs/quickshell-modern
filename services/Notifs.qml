@@ -95,9 +95,9 @@ Singleton {
             const obj = notifComp.createObject(root, {
                 src: notif,
                 time: Date.now(),
-                // expireTimeout is seconds per spec; -1 means the client
-                // didn't care, fall back to our own default.
-                timeout: notif.expireTimeout > 0 ? notif.expireTimeout * 1000 : 6000,
+                // expireTimeout is milliseconds per the spec; -1 means the
+                // client didn't care, fall back to our own default.
+                timeout: notif.expireTimeout > 0 ? notif.expireTimeout : 6000,
                 appName: notif.appName,
                 appIcon: notif.appIcon,
                 image: notif.image,

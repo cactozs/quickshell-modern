@@ -201,7 +201,7 @@ Item {
                     font.pixelSize: 20
 
                     Behavior on color {
-                        ColorAnimation { duration: 150 }
+                        ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -386,9 +386,19 @@ Item {
         color: item.selected ? Theme.surfaceContainerHigh : "transparent"
         border.width: item.selected ? 1 : 0
         border.color: Theme.primary
+        // respond on press, not release
+        scale: pressArea.pressed ? 0.98 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 120 }
+            ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on border.width {
+            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on scale {
+            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
         }
 
         AppIcon {
@@ -439,6 +449,8 @@ Item {
         }
 
         MouseArea {
+            id: pressArea
+
             anchors.fill: parent
 
             onClicked: root.activate(item.index)
