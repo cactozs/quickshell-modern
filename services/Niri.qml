@@ -19,6 +19,20 @@ Singleton {
     // Raw workspace objects straight from niri IPC (JSON).
     property var workspaces: []
 
+    // Keyboard layout state; the Win+Space xkb toggle reports through the
+    // event stream. layoutBadgeShown flashes the language chip in the bar.
+    property var keyboardLayouts: ({ names: [], currentIdx: 0 })
+
+    readonly property string currentLayout: layoutShortName(
+        keyboardLayouts.names[keyboardLayouts.currentIdx] ?? "")
+
+    // waybar niri/language: format-en "us", format-ru "ru".
+    function layoutShortName(name: string): string {
+        if (name === "") return "";
+        const known = { "English (US)": "us", "Russian": "ru" };
+        return known[name] ?? name.slice(0, 2).toLowerCase();
+    }
+
     function workspacesFor(output: string): var {
         return workspaces
             .filter(w => w.output === output)
@@ -49,6 +63,21 @@ Singleton {
         } else if (ev.WorkspaceActivated || ev.WorkspaceUrgencyChanged) {
             // The activation/urgency events carry no full state; re-query.
             root.refreshWorkspaces();
+        } else if (ev.KeyboardLayoutsChanged) {
+            const kl = ev.KeyboardLayoutsChanged.keyboard_layouts;
+            root.keyboardLayouts = { names: kl.names ?? [], currentIdx: kl.current_idx ?? 0 };
+        } else if (ev.KeyboardLayoutSwitched) {
+            const idx = ev.KeyboardLayoutSwitched.idx;
+            const changed = idx !== root.keyboardLayouts.currentIdx;
+            root.keyboardLayouts = {
+                names: root.keyboardLayouts.names,
+                currentIdx: idx
+            };
+            if (changed && root.keyboardLayouts.names.length > 0) {
+                // The bar morphs into the OSD for a beat (Osd owns the hide
+                // timer); the globe icon is BarOsd's.
+                Osd.show("language", -1, root.currentLayout.toUpperCase());
+            }
         }
     }
 
@@ -118,5 +147,31 @@ Singleton {
         }
     }
 
-    Component.onCompleted: refreshWorkspaces()
+    function refreshKeyboardLayouts(): void {
+        if (!kbProc.running) kbProc.running = true;
+    }
+
+    Process {
+        id: kbProc
+        command: ["niri", "msg", "-j", "keyboard-layouts"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const kl = JSON.parse(text);
+                    root.keyboardLayouts = {
+                        names: kl.names ?? [],
+                        currentIdx: kl.current_idx ?? 0
+                    };
+                } catch (e) {
+                    console.warn("niri keyboard-layouts parse failed:", e);
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        refreshWorkspaces();
+        refreshKeyboardLayouts();
+    }
 }

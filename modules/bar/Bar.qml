@@ -9,6 +9,7 @@ import "../../style"
 import "../launcher"
 import "../wallpaper"
 import "../clipboard"
+import "../osd"
 import "../../services"
 import "."
 
@@ -41,6 +42,10 @@ PanelWindow {
     readonly property bool wallpaperOpen: Wallpaper.shown && Wallpaper.screen === modelData.name
     readonly property bool clipboardOpen: Clipboard.shown && Clipboard.screen === modelData.name
     readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen
+
+    // OSD (volume/brightness/caps/layout) replaces the whole bar content for
+    // a beat; suppressed while a real panel is morphed open.
+    readonly property bool osdOpen: Osd.shown && !root.panelOpen
 
     screen: modelData
 
@@ -75,6 +80,15 @@ PanelWindow {
 
     mask: Region { item: plate }
 
+    // Singletons are lazy: Audio, Brightness and CapsLock are referenced by
+    // nothing else, so touch them once or their Process/Connections never
+    // come alive (Osd and Niri wake through the bindings above).
+    Component.onCompleted: {
+        Audio.volume;
+        Brightness.percent;
+        CapsLock.capsOn;
+    }
+
     // Bottom corners only: the capsule is drawn one radius taller and shifted
     // up, and the plate clips its top rounding away — so the bar meets the
     // top edge with straight sides.
@@ -86,6 +100,7 @@ PanelWindow {
         width: root.launcherOpen ? LauncherState.plateWidth
             : root.wallpaperOpen ? Wallpaper.plateWidth
             : root.clipboardOpen ? Clipboard.plateWidth
+            : root.osdOpen ? osd.implicitWidth + root.padH * 2
             : contentRow.implicitWidth + root.padH * 2
         clip: true
 
@@ -111,8 +126,8 @@ PanelWindow {
             anchors.rightMargin: root.padH
             spacing: 14
 
-            opacity: root.panelOpen ? 0 : 1
-            enabled: !root.panelOpen
+            opacity: (root.panelOpen || root.osdOpen) ? 0 : 1
+            enabled: !root.panelOpen && !root.osdOpen
 
             Behavior on opacity {
                 // fade the bar widgets out fast so they don't linger through
@@ -211,6 +226,23 @@ PanelWindow {
                 }
             }
         }
+
+        // Transient OSD content: the whole bar content swaps for it, then
+        // swaps back. Height stays at the resting bar height.
+        BarOsd {
+            id: osd
+
+            anchors.centerIn: parent
+            visible: root.osdOpen
+
+            opacity: root.osdOpen ? 1 : 0
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: 50 }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                }
+            }
+        }
     }
 
     // Left flare wing fill: square minus a quarter disc — the arc runs from
@@ -240,11 +272,17 @@ PanelWindow {
         }
     }
 
-    // Right flare wing fill, mirrored.
+    // Right wing, mirrored. The path is the exact x-mirror of the left one —
+    // filling the disc side instead of the fillet side leaves a black wedge
+    // past the plate edge with an AA seam slicing through it (visible on the
+    // narrow OSD plate). Overlaps the plate by 1px: the plate centers on a
+    // half pixel, and abutting AA edges at plate.right shine through as a
+    // gray line otherwise.
     Shape {
         anchors.left: plate.right
+        anchors.leftMargin: -1
         y: 0
-        width: root.flare
+        width: root.flare + 1
         height: root.flare
         antialiasing: true
 
@@ -252,15 +290,16 @@ PanelWindow {
             fillColor: Theme.plate
             strokeWidth: -1
 
-            startX: 0
+            startX: root.flare
             startY: 0
-            PathLine { x: root.flare; y: 0 }
+            PathLine { x: 0; y: 0 }
+            PathLine { x: 0; y: root.flare }
             PathArc {
-                x: 0
-                y: root.flare
+                x: root.flare
+                y: 0
                 radiusX: root.flare
                 radiusY: root.flare
-                direction: PathArc.Counterclockwise
+                direction: PathArc.Clockwise
             }
         }
     }
