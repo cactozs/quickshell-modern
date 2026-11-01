@@ -8,14 +8,57 @@ import QtQuick.Layouts
 import "../../style"
 import "../../services"
 
-// Right status row: the notification bell, the network icon and a custom
-// battery pill.
+// Right status row: the keyboard layout chip, the notification bell, the
+// network icon and a custom battery pill.
 RowLayout {
     id: root
 
     property string screenName: ""
 
     spacing: 14
+
+    // ---- keyboard layout ----
+
+    // Same globe + short-name pair as the layout OSD; hidden until niri
+    // reports layouts. Click cycles to the next layout — the switch event
+    // comes back through the Niri event stream and flashes the OSD.
+    Item {
+        id: lang
+
+        visible: Niri.currentLayout !== ""
+        implicitWidth: langRow.implicitWidth
+        implicitHeight: langRow.implicitHeight
+        Layout.alignment: Qt.AlignVCenter
+
+        Row {
+            id: langRow
+
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 5
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "language"
+                color: Theme.primary
+                font.family: Theme.iconFont
+                font.pixelSize: 17
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Niri.currentLayout.toUpperCase()
+                color: Theme.onSurface
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: Quickshell.execDetached(["niri", "msg", "action", "switch-layout", "next"])
+        }
+    }
 
     // ---- notifications ----
 
