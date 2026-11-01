@@ -31,7 +31,7 @@ PanelWindow {
     readonly property int padH: 16
 
     // radius of the concave fillet connecting the plate sides to the top edge
-    readonly property int flare: 20
+    readonly property int flare: 14
 
     // The plate morphs into the launcher on the targeted monitor only.
     readonly property bool launcherOpen: LauncherState.shown && LauncherState.screen === modelData.name

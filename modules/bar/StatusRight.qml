@@ -36,7 +36,7 @@ RowLayout {
                 text: Notifs.dnd ? "notifications_off" : "notifications"
                 color: Theme.primary
                 font.family: Theme.iconFont
-                font.pixelSize: 15
+                font.pixelSize: 17
             }
 
             Text {
@@ -68,7 +68,7 @@ RowLayout {
         color: Theme.primary
         opacity: root.netIcon === "signal_cellular_off" ? 0.6 : 1
         font.family: Theme.iconFont
-        font.pixelSize: 15
+        font.pixelSize: 17
 
         Behavior on opacity {
             NumberAnimation { duration: 150 }
@@ -156,7 +156,7 @@ RowLayout {
         text: root.battIcon
         color: root.battLow ? Theme.error : Theme.primary
         font.family: Theme.iconFont
-        font.pixelSize: 15
+        font.pixelSize: 17
     }
 
     Component.onCompleted: refreshNet()

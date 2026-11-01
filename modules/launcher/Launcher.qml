@@ -193,6 +193,7 @@ Item {
                     id: searchIcon
 
                     anchors.left: parent.left
+                    anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "search"
                     color: input.activeFocus ? Theme.primary : Theme.onSurfaceVariant
@@ -220,7 +221,9 @@ Item {
 
                     anchors.left: searchIcon.right
                     anchors.leftMargin: 10
-                    anchors.right: parent.right
+                    anchors.right: counter.left
+                    anchors.rightMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
                     clip: true
 
                     color: Theme.onSurface
@@ -244,6 +247,7 @@ Item {
                     id: counter
 
                     anchors.right: parent.right
+                    anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.results.length + "/" + root.allEntries.length
                     color: Theme.onSurfaceVariant
