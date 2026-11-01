@@ -1,5 +1,4 @@
 import "modules/bar"
-import "modules/launcher"
 import Quickshell
 
 ShellRoot {
@@ -8,6 +7,4 @@ ShellRoot {
 
         Bar {}
     }
-
-    Launcher {}
 }

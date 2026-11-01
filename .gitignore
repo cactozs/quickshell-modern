@@ -1,0 +1,8 @@
+# matugen-generated palette (rewritten on every `matugen image` / `awww img`)
+style/Colors*.json
+
+# quickshell LSP scratch file (auto-filled with session-specific VFS paths)
+.qmlls.ini
+
+# zcode session artifacts
+.zcode/

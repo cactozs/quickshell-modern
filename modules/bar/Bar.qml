@@ -6,6 +6,8 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
 import "../../style"
+import "../launcher"
+import "../../services"
 import "."
 
 // Peninsula bar: a compact plate pinned to the top edge (no top margin) with
@@ -16,6 +18,11 @@ import "."
 // side → bottom corners → side → fillet → edge, with no line along the top
 // edge itself. Only the plate takes input (mask); the exclusive zone keeps
 // windows below it with a small gap.
+//
+// When the launcher opens on this monitor, the plate morphs into it: it
+// widens and grows downward while the widgets fade into the launcher
+// content. The exclusive zone stays at the resting height so windows
+// below don't jump; the expanded plate just overlays them.
 PanelWindow {
     id: root
 
@@ -25,6 +32,9 @@ PanelWindow {
 
     // radius of the concave fillet connecting the plate sides to the top edge
     readonly property int flare: 20
+
+    // The plate morphs into the launcher on the targeted monitor only.
+    readonly property bool launcherOpen: LauncherState.shown && LauncherState.screen === modelData.name
 
     screen: modelData
 
@@ -40,12 +50,20 @@ PanelWindow {
         right: Theme.barSideMargin
     }
 
-    implicitHeight: Theme.barHeight
+    implicitHeight: root.launcherOpen ? launcher.height : Theme.barHeight
+
+    Behavior on implicitHeight {
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+    }
+
     exclusionMode: ExclusionMode.Normal
-    exclusiveZone: implicitHeight + Theme.barMargin
+    // Reserve the resting bar height even while expanded so windows below
+    // don't jump.
+    exclusiveZone: Theme.barHeight + Theme.barMargin
     color: "transparent"
 
     WlrLayershell.namespace: "quickshell:bar"
+    WlrLayershell.keyboardFocus: root.launcherOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     mask: Region { item: plate }
 
@@ -57,8 +75,14 @@ PanelWindow {
 
         anchors.horizontalCenter: parent.horizontalCenter
         height: parent.height
-        width: contentRow.implicitWidth + root.padH * 2
+        width: root.launcherOpen
+            ? Math.min(860, parent.width - 160)
+            : contentRow.implicitWidth + root.padH * 2
         clip: true
+
+        Behavior on width {
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
 
         Rectangle {
             y: -Theme.radiusLG
@@ -77,6 +101,13 @@ PanelWindow {
             anchors.leftMargin: root.padH
             anchors.rightMargin: root.padH
             spacing: 14
+
+            opacity: root.launcherOpen ? 0 : 1
+            enabled: !root.launcherOpen
+
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
 
             Workspaces {
                 Layout.alignment: Qt.AlignVCenter
@@ -100,6 +131,20 @@ PanelWindow {
             StatusRight {
                 Layout.alignment: Qt.AlignVCenter
             }
+        }
+
+        // The launcher content, shown while the plate is morphed open. Its
+        // implicitHeight drives the plate height.
+        Launcher {
+            id: launcher
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            visible: root.launcherOpen
+            active: root.launcherOpen
         }
     }
 

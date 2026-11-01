@@ -1,22 +1,27 @@
 pragma ComponentBehavior: Bound
 
 import Quickshell
-import Quickshell.Io
-import Quickshell.Wayland
 import Quickshell.Widgets
 import QtQuick
 import "../../style"
+import "../../services"
 
-// Application launcher: a full-screen scrim plus a top-anchored search card
-// with a result list, in the style of the reference pickers (search line on
-// top, selected row outlined with the matugen accent, "N/M" counter and an
-// "Enter to launch" hint at the bottom). Opened by the niri keybind through
-// `qs ipc call launcher toggleOn <output>`; dismissed by Esc, a scrim click,
-// or launching an app.
-PanelWindow {
+// Application launcher content: a search line and a result list, in the
+// style of the reference pickers (search line on top, selected row outlined
+// with the matugen accent, "N/M" counter and an "Enter to launch" hint at
+// the bottom). Not a window of its own — the bar embeds this item and
+// morphs into it. Open state lives in LauncherState, driven by the niri
+// keybind through `qs ipc call launcher toggleOn <output>`; dismissed by
+// Esc or launching an app.
+Item {
     id: root
 
-    property bool shown: false
+    // Set by the embedding bar: this monitor's plate is currently the
+    // launcher.
+    property bool active: false
+
+    // The embedding bar sizes its plate height from this.
+    implicitHeight: card.implicitHeight
 
     readonly property var allEntries: DesktopEntries.applications.values
     readonly property string query: input.text
@@ -113,26 +118,6 @@ PanelWindow {
 
     // ---- actions ------------------------------------------------------------
 
-    function openLauncher(screenName: string): void {
-        if (screenName !== "") {
-            const s = Quickshell.screens.find(sc => sc.name === screenName);
-            if (s)
-                root.screen = s;
-        }
-        root.shown = true;
-    }
-
-    function closeLauncher(): void {
-        root.shown = false;
-    }
-
-    function toggleLauncher(screenName: string): void {
-        if (root.shown)
-            root.closeLauncher();
-        else
-            root.openLauncher(screenName);
-    }
-
     function moveFocus(delta: int): void {
         if (root.results.length === 0)
             return;
@@ -144,7 +129,7 @@ PanelWindow {
         if (!entry)
             return;
 
-        root.closeLauncher();
+        LauncherState.close();
         if (entry.runInTerminal)
             Quickshell.execDetached({
                 command: root.terminalCommand.concat(entry.command),
@@ -154,39 +139,14 @@ PanelWindow {
             entry.execute();
     }
 
-    IpcHandler {
-        target: "launcher"
-
-        function toggle(): void { root.toggleLauncher("") }
-        function toggleOn(screenName: string): void { root.toggleLauncher(screenName) }
-        function close(): void { root.closeLauncher() }
-    }
-
-    // ---- panel window ---------------------------------------------------------
-
-    anchors {
-        top: true
-        left: true
-        right: true
-        bottom: true
-    }
-
-    // Fullscreen modal: ignore the bar's exclusive zone so the scrim covers
-    // the whole output (Ignore and exclusiveZone are mutually exclusive).
-    exclusionMode: ExclusionMode.Ignore
-    color: "transparent"
-    visible: root.shown || card.opacity > 0.001
-
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "quickshell:launcher"
-    WlrLayershell.keyboardFocus: root.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-    onShownChanged: {
-        if (root.shown) {
-            input.text = "";
-            root.currentIndex = 0;
-            focusKick.restart();
-        }
+    // Clear the query and selection whenever this monitor's plate becomes
+    // the launcher.
+    onActiveChanged: {
+        if (!root.active)
+            return;
+        input.text = "";
+        root.currentIndex = 0;
+        focusKick.restart();
     }
 
     // Layer surfaces take a moment to gain keyboard focus; make sure the
@@ -197,55 +157,17 @@ PanelWindow {
         onTriggered: input.forceActiveFocus()
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.scrim
-        opacity: root.shown ? 1 : 0
-
-        Behavior on opacity {
-            NumberAnimation { duration: 150 }
-        }
-    }
-
-    // click outside the card dismisses the launcher
-    MouseArea {
-        anchors.fill: parent
-
-        onClicked: root.closeLauncher()
-    }
-
-    Rectangle {
+    // Content container: fills the bar plate that morphs around it — the
+    // plate itself is the background now.
+    Item {
         id: card
 
         anchors {
             top: parent.top
-            // clear the peninsula (bar height + its gap below) plus one gap
-            topMargin: Theme.barHeight + Theme.barMargin + 12
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
+            right: parent.right
         }
-        width: Math.min(860, parent.width - 160)
-        height: column.implicitHeight + root.cardPadding * 2
-        radius: Theme.radiusXL
-        color: Theme.plateStrong
-        border.width: 1
-        border.color: Theme.plateBorder
-
-        scale: root.shown ? 1 : 0.98
-        opacity: root.shown ? 1 : 0
-
-        Behavior on scale {
-            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-        }
-
-        Behavior on opacity {
-            NumberAnimation { duration: 150 }
-        }
-
-        // Swallow clicks on the card background so they don't reach the
-        // dismiss area underneath.
-        MouseArea {
-            anchors.fill: parent
-        }
+        implicitHeight: column.implicitHeight + root.cardPadding * 2
 
         Column {
             id: column
@@ -308,12 +230,12 @@ PanelWindow {
                     selectionColor: Theme.primary
                     selectedTextColor: Theme.onPrimary
 
-                    focus: root.shown
+                    focus: root.active
 
                     onAccepted: root.activate(root.currentIndex)
                     onTextChanged: root.currentIndex = 0
 
-                    Keys.onEscapePressed: root.closeLauncher()
+                    Keys.onEscapePressed: LauncherState.close()
                     Keys.onUpPressed: root.moveFocus(-1)
                     Keys.onDownPressed: root.moveFocus(1)
                 }
@@ -338,7 +260,7 @@ PanelWindow {
                 width: parent.width
                 height: root.results.length > 0
                     ? Math.min(root.results.length * (root.rowHeight + root.rowSpacing) - root.rowSpacing,
-                               Math.floor(root.height * 0.5))
+                               root.rowHeight * 6 + root.rowSpacing * 5)
                     : 0
                 visible: root.results.length > 0
                 clip: true
