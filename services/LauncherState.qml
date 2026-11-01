@@ -41,6 +41,30 @@ Singleton {
         root.shown = false;
     }
 
+    // Launch counts per desktop entry id, persisted so the launcher can sort
+    // by how often apps are opened (ties go alphabetical in Launcher.qml).
+    readonly property var counts: JSON.parse(countsJson.counts || "{}")
+
+    function bump(entryId: string): void {
+        if (entryId === "")
+            return;
+        const c = root.counts;
+        c[entryId] = (c[entryId] ?? 0) + 1;
+        countsJson.counts = JSON.stringify(c);
+    }
+
+    FileView {
+        path: Qt.resolvedUrl("LauncherCounts.json")
+        printErrors: false
+
+        JsonAdapter {
+            id: countsJson
+
+            // Dynamic keys aren't supported, so the map rides in one string.
+            property string counts: "{}"
+        }
+    }
+
     IpcHandler {
         target: "launcher"
 

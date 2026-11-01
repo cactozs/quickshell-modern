@@ -39,16 +39,21 @@ Item {
     readonly property int rowSpacing: 4
 
     // ---- results ------------------------------------------------------------
-    // Empty query: alphabetical. Otherwise: exact > prefix > word start >
-    // substring > subsequence, with the name weighted over comment/keywords.
+    // Empty query: most opened first, ties alphabetical. Otherwise:
+    // exact > prefix > word start > substring > subsequence, with the name
+    // weighted over comment/keywords.
     readonly property var results: {
         if (!root.visible)
             return [];
 
         const entries = root.allEntries;
         const q = root.query.toLowerCase().trim();
-        if (q === "")
-            return entries.slice().sort((a, b) => a.name.localeCompare(b.name));
+        if (q === "") {
+            const counts = LauncherState.counts;
+            return entries.slice().sort((a, b) =>
+                (counts[b.id] ?? 0) - (counts[a.id] ?? 0)
+                || a.name.localeCompare(b.name));
+        }
 
         const scored = [];
         for (let i = 0; i < entries.length; i++) {
@@ -129,6 +134,7 @@ Item {
         if (!entry)
             return;
 
+        LauncherState.bump(entry.id);
         LauncherState.close();
         if (entry.runInTerminal)
             Quickshell.execDetached({
