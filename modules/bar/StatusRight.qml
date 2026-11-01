@@ -8,8 +8,9 @@ import QtQuick.Layouts
 import "../../style"
 import "../../services"
 
-// Right status row: the keyboard layout chip, the notification bell, the
-// network icon and a custom battery pill.
+// Right status row: the keyboard layout chip, the network icon and a custom
+// battery pill. The notification center lives on behind the notifs IPC
+// (`qs ipc call notifs toggleCenter`), not on the bar.
 RowLayout {
     id: root
 
@@ -57,44 +58,6 @@ RowLayout {
         MouseArea {
             anchors.fill: parent
             onClicked: Quickshell.execDetached(["niri", "msg", "action", "switch-layout", "next"])
-        }
-    }
-
-    // ---- notifications ----
-
-    Item {
-        id: bell
-
-        implicitWidth: bellRow.implicitWidth
-        implicitHeight: bellRow.implicitHeight
-
-        Row {
-            id: bellRow
-
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 6
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Notifs.dnd ? "notifications_off" : "notifications"
-                color: Theme.primary
-                font.family: Theme.iconFont
-                font.pixelSize: 17
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: Notifs.unread > 0
-                text: Notifs.unread
-                color: Theme.primary
-                font.family: Theme.fontFamily
-                font.pixelSize: 11
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: Notifs.toggleCenter(root.screenName)
         }
     }
 
