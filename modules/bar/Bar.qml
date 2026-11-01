@@ -72,7 +72,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     // Reserve the resting bar height even while expanded so windows below
     // don't jump.
-    exclusiveZone: Theme.barHeight + Theme.barMargin
+    exclusiveZone: Theme.barHeight
     color: "transparent"
 
     WlrLayershell.namespace: "quickshell:bar"

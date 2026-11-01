@@ -19,7 +19,6 @@ Singleton {
 
     // ---- geometry ----
     readonly property int barHeight: 40
-    readonly property int barMargin: 8
     readonly property int barSideMargin: 12
     readonly property int radiusLG: 18
     readonly property int radiusXL: 24

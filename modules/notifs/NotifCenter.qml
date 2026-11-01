@@ -57,9 +57,9 @@ PanelWindow {
         bottom: true
     }
 
-    // Height stops at the bar strip: the bar's exclusive zone (barHeight +
-    // barMargin) pushes the top edge down to exactly that line.
-    implicitHeight: (root.screen?.height ?? 900) - Theme.barHeight - Theme.barMargin
+    // Height stops at the bar strip: the bar's exclusive zone pushes the
+    // top edge down to exactly that line.
+    implicitHeight: (root.screen?.height ?? 900) - Theme.barHeight
 
     color: "transparent"
     WlrLayershell.namespace: "quickshell:panel-scrim"
