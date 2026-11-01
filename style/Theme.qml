@@ -24,9 +24,9 @@ Singleton {
     readonly property int radiusXL: 24
     readonly property int radiusMD: 12
 
-    // ---- OLED plates ----
-    readonly property color plate: "#e6000000"
-    readonly property color plateStrong: "#f2000000"
+    // ---- OLED plates (fully opaque) ----
+    readonly property color plate: "#ff000000"
+    readonly property color plateStrong: "#ff000000"
     readonly property color plateBorder: Qt.rgba(1, 1, 1, 0.08)
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.5)
 
