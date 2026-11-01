@@ -8,6 +8,7 @@ import QtQuick.Shapes
 import "../../style"
 import "../launcher"
 import "../wallpaper"
+import "../clipboard"
 import "../../services"
 import "."
 
@@ -34,11 +35,12 @@ PanelWindow {
     // radius of the concave fillet connecting the plate sides to the top edge
     readonly property int flare: 14
 
-    // The plate morphs into the launcher or the wallpaper ribbon on the
-    // targeted monitor only.
+    // The plate morphs into the launcher, the wallpaper ribbon or the
+    // clipboard picker on the targeted monitor only.
     readonly property bool launcherOpen: LauncherState.shown && LauncherState.screen === modelData.name
     readonly property bool wallpaperOpen: Wallpaper.shown && Wallpaper.screen === modelData.name
-    readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen
+    readonly property bool clipboardOpen: Clipboard.shown && Clipboard.screen === modelData.name
+    readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen
 
     screen: modelData
 
@@ -55,7 +57,8 @@ PanelWindow {
     }
 
     implicitHeight: root.launcherOpen ? launcher.height
-        : root.wallpaperOpen ? ribbon.height : Theme.barHeight
+        : root.wallpaperOpen ? ribbon.height
+        : root.clipboardOpen ? clipPicker.height : Theme.barHeight
 
     Behavior on implicitHeight {
         NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
@@ -82,6 +85,7 @@ PanelWindow {
         height: parent.height
         width: root.launcherOpen ? LauncherState.plateWidth
             : root.wallpaperOpen ? Wallpaper.plateWidth
+            : root.clipboardOpen ? Clipboard.plateWidth
             : contentRow.implicitWidth + root.padH * 2
         clip: true
 
@@ -179,6 +183,27 @@ PanelWindow {
             active: root.wallpaperOpen
 
             opacity: root.wallpaperOpen ? 1 : 0
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: 50 }
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                }
+            }
+        }
+
+        // The clipboard picker: same morph, vertical history list.
+        ClipboardPanel {
+            id: clipPicker
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            visible: root.clipboardOpen
+            active: root.clipboardOpen
+
+            opacity: root.clipboardOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
                     PauseAnimation { duration: 50 }

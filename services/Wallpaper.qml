@@ -33,6 +33,7 @@ Singleton {
         }
         LauncherState.shown = false;
         Notifs.shown = false;
+        Clipboard.shown = false;
         if (screenName !== "")
             root.screen = screenName;
         else if (root.screen === "")

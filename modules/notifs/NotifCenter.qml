@@ -24,8 +24,10 @@ PanelWindow {
     // launcher/wallpaper scrim) lingers briefly so the exit can play.
     property bool notifHiding: false
 
-    visible: Notifs.shown || LauncherState.shown || Wallpaper.shown || root.notifHiding
-    screen: Quickshell.screens.find(s => s.name === (Wallpaper.shown ? Wallpaper.screen
+    visible: Notifs.shown || LauncherState.shown || Wallpaper.shown || Clipboard.shown
+        || root.notifHiding
+    screen: Quickshell.screens.find(s => s.name === (Clipboard.shown ? Clipboard.screen
+        : Wallpaper.shown ? Wallpaper.screen
         : LauncherState.shown ? LauncherState.screen : Notifs.screen)) ?? null
 
     Connections {
@@ -74,7 +76,8 @@ PanelWindow {
     // own input too). The panels are mutually exclusive, so only one width
     // applies at a time.
     readonly property int holeW: LauncherState.shown ? LauncherState.plateWidth
-        : Wallpaper.shown ? Wallpaper.plateWidth : 0
+        : Wallpaper.shown ? Wallpaper.plateWidth
+        : Clipboard.shown ? Clipboard.plateWidth : 0
     readonly property int holeX: root.holeW > 0
         ? Math.round((root.width - root.holeW) / 2) : 0
 
@@ -101,6 +104,8 @@ PanelWindow {
                 LauncherState.close();
             else if (Notifs.shown)
                 Notifs.shown = false;
+            else if (Clipboard.shown)
+                Clipboard.close();
             else
                 Wallpaper.close();
         }
