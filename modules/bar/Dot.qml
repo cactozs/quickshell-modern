@@ -20,7 +20,7 @@ Rectangle {
     height: active ? growHeight : dimHeight
     radius: dimWidth / 2
     anchors.verticalCenter: parent.verticalCenter
-    color: urgent ? Theme.error : active ? Theme.onSurface : Theme.onSurfaceVariant
+    color: urgent ? Theme.error : active ? Theme.primary : Theme.primaryContainer
     scale: ma.containsMouse ? 1.25 : 1
 
     Behavior on height {

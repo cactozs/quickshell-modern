@@ -34,6 +34,8 @@ Singleton {
     // ---- accents & text (Colors.json wins over the defaults) ----
     readonly property color primary: json.primary
     readonly property color onPrimary: json.on_primary
+    readonly property color secondary: json.secondary
+    readonly property color primaryContainer: json.primary_container
     readonly property color onSurface: json.on_surface
     readonly property color onSurfaceVariant: json.on_surface_variant
     readonly property color surfaceContainerHigh: json.surface_container_high
@@ -54,6 +56,8 @@ Singleton {
 
             property string primary: "#a8c8fb"
             property string on_primary: "#003062"
+            property string secondary: "#c2d7f5"
+            property string primary_container: "#00497f"
             property string on_surface: "#e3e2e9"
             property string on_surface_variant: "#95909f"
             property string surface_container_high: "#2b2930"

@@ -20,7 +20,7 @@ RowLayout {
     Text {
         Layout.alignment: Qt.AlignVCenter
         text: Qt.formatDateTime(clock.date, "HH:mm")
-        color: Theme.onSurface
+        color: Qt.lighter(Theme.primary, 1.35)
         font.family: Theme.fontFamily
         font.pixelSize: 17
         font.weight: Font.DemiBold

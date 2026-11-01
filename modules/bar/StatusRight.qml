@@ -34,7 +34,7 @@ RowLayout {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: Notifs.dnd ? "notifications_off" : "notifications"
-                color: Notifs.unread > 0 ? Theme.onSurface : Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.iconFont
                 font.pixelSize: 15
             }
@@ -43,7 +43,7 @@ RowLayout {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Notifs.unread > 0
                 text: Notifs.unread
-                color: Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.fontFamily
                 font.pixelSize: 11
             }
@@ -65,7 +65,7 @@ RowLayout {
         visible: root.nmcliOk
         Layout.alignment: Qt.AlignVCenter
         text: root.netIcon
-        color: Theme.onSurface
+        color: Theme.primary
         opacity: root.netIcon === "signal_cellular_off" ? 0.6 : 1
         font.family: Theme.iconFont
         font.pixelSize: 15
@@ -138,68 +138,25 @@ RowLayout {
     // ---- battery ----
 
     readonly property bool hasBattery: UPower.displayDevice !== null
+    readonly property real battPct: Math.max(0, Math.min(1, UPower.displayDevice?.percentage ?? 1))
+    readonly property bool battCharging: UPower.displayDevice?.state === UPowerDeviceState.Charging
+    readonly property bool battLow: !battCharging && battPct <= 0.15
 
-    Item {
-        id: batt
+    // battery_android_0 .. battery_android_6 tracks the charge level
+    readonly property string battIcon: {
+        if (battCharging) return "battery_android_full";
+        if (battLow) return "battery_alert";
+        return ["battery_android_0", "battery_android_1", "battery_android_2", "battery_android_3",
+                "battery_android_4", "battery_android_5", "battery_android_6"][Math.round(battPct * 6)];
+    }
 
-        readonly property real pct: Math.max(0, Math.min(1, UPower.displayDevice?.percentage ?? 1))
-        readonly property bool charging: UPower.displayDevice?.state === UPowerDeviceState.Charging
-        readonly property bool low: !charging && pct <= 0.15
-
+    Text {
         visible: root.hasBattery
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 28
-        implicitHeight: 14
-
-        // tip
-        Rectangle {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: 3
-            height: 6
-            radius: 1
-            color: batt.low ? Theme.error : Theme.onSurfaceVariant
-        }
-
-        Rectangle {
-            id: body
-
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 5
-            height: parent.height
-            radius: 4
-            // solid pill like the reference; the level reads as the bright fill
-            color: Qt.rgba(1, 1, 1, 0.2)
-
-            Rectangle {
-                id: fill
-
-                x: 2
-                y: 2
-                width: Math.max(0, (body.width - 4) * batt.pct)
-                height: body.height - 4
-                radius: 2
-                color: batt.low ? Theme.error : batt.charging ? Theme.primary : Theme.onSurface
-
-                Behavior on width {
-                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Behavior on color {
-                    ColorAnimation { duration: 200 }
-                }
-            }
-
-            Text {
-                anchors.centerIn: parent
-                visible: batt.charging
-                text: "bolt"
-                color: Theme.primary
-                font.family: Theme.iconFont
-                font.pixelSize: 11
-            }
-        }
+        text: root.battIcon
+        color: root.battLow ? Theme.error : Theme.primary
+        font.family: Theme.iconFont
+        font.pixelSize: 15
     }
 
     Component.onCompleted: refreshNet()

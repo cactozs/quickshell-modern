@@ -118,14 +118,14 @@ PanelWindow {
             Text {
                 Layout.fillWidth: true
                 text: "Notifications"
-                color: Theme.onSurface
+                color: Theme.primary
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
 
             Text {
                 text: Notifs.dnd ? "do_not_disturb_on" : "do_not_disturb_off"
-                color: Notifs.dnd ? Theme.primary : Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.iconFont
                 font.pixelSize: 17
 
@@ -141,7 +141,7 @@ PanelWindow {
 
             Text {
                 text: "delete_sweep"
-                color: Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.iconFont
                 font.pixelSize: 17
 
@@ -179,7 +179,7 @@ PanelWindow {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: "All caught up"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.primary
                     font.family: Theme.fontFamily
                     font.pixelSize: 12
                 }

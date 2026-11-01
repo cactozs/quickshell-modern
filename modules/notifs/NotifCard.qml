@@ -69,7 +69,7 @@ Rectangle {
                 anchors.centerIn: parent
                 visible: card.model.image === "" && card.model.appIcon === ""
                 text: "notifications"
-                color: Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.iconFont
                 font.pixelSize: 22
             }
@@ -85,7 +85,7 @@ Rectangle {
                 Text {
                     Layout.fillWidth: true
                     text: card.model.summary !== "" ? card.model.summary : card.model.appName
-                    color: Theme.onSurface
+                    color: Theme.primary
                     font.family: Theme.fontFamily
                     font.pixelSize: 13
                     elide: Text.ElideRight
@@ -98,7 +98,7 @@ Rectangle {
                     Text {
                         anchors.centerIn: parent
                         text: "close"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.primary
                         font.family: Theme.iconFont
                         font.pixelSize: 14
                     }
@@ -114,7 +114,7 @@ Rectangle {
                 Layout.fillWidth: true
                 visible: card.model.body !== ""
                 text: card.model.body
-                color: Theme.onSurfaceVariant
+                color: Theme.primary
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 textFormat: Text.PlainText
@@ -146,7 +146,7 @@ Rectangle {
 
                             anchors.centerIn: parent
                             text: actionBtn.modelData.text
-                            color: Theme.onSurface
+                            color: Theme.primary
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
                         }
