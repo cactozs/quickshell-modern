@@ -19,10 +19,6 @@ Singleton {
     // here so services/IPC can open the panel straight onto a tab.
     property int tab: 0
 
-    // Set by the panel while its wifi password input is visible: the bar
-    // grabs the keyboard only then, so niri's own binds keep working.
-    property bool wantsKeyboard: false
-
     // Width of the morphed plate; Bar.qml binds to this so the panel scrim
     // (PanelScrim.qml) can cut its click-through hole without duplicating
     // the constants.

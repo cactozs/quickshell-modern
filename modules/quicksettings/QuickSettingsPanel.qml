@@ -32,6 +32,13 @@ Item {
     // The embedding bar sizes its plate height from this.
     implicitHeight: card.implicitHeight
 
+    // Esc closes, like the launcher.
+    Keys.onEscapePressed: QuickSettings.close()
+
+    // Layer surfaces take a moment to gain keyboard focus; make sure Esc
+    // works either way.
+    focus: root.active
+
     readonly property int cardPadding: 14
 
     // Selected tab, mirrored into the QuickSettings service so IPC (and
@@ -44,14 +51,13 @@ Item {
             if (root.active)
                 root.wifiRefresh();
         } else {
-            // leaving the view hides the password input and releases the keyboard
+            // leaving the view hides the password input
             root.wifiPasswordFor = "";
         }
     }
 
-    // The bar grabs the keyboard only while the wifi password input needs it.
+    // Leaving the password field drops its error.
     onWifiPasswordForChanged: {
-        QuickSettings.wantsKeyboard = root.wifiPasswordFor !== "";
         if (root.wifiPasswordFor === "")
             root.wifiError = "";
     }
@@ -363,12 +369,21 @@ Item {
             if (root.btAvailable)
                 btQuery.running = true;
             weatherKick.restart();
+            focusKick.restart();
             if (root.currentTab === 7)
                 root.wifiRefresh();
         } else {
             root.wifiPasswordFor = "";
             root.wifiError = "";
         }
+    }
+
+    // Layer surfaces take a beat to receive keyboard focus.
+    Timer {
+        id: focusKick
+
+        interval: 50
+        onTriggered: root.forceActiveFocus()
     }
 
     Component.onCompleted: {
