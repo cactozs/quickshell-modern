@@ -4,5 +4,8 @@ style/Colors*.json
 # quickshell LSP scratch file (auto-filled with session-specific VFS paths)
 .qmlls.ini
 
+# app color target toggles (quick settings)
+theme-apps.json
+
 # zcode session artifacts
 .zcode/

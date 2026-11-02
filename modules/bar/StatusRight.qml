@@ -48,7 +48,7 @@ RowLayout {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: Niri.currentLayout.toUpperCase()
-                color: Theme.onSurface
+                color: Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 font.weight: Font.DemiBold

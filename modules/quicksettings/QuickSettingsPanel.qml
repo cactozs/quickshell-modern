@@ -11,9 +11,9 @@ import "../../style"
 import "../../services"
 
 // Quick settings / control center content: two sliders and four chips on
-// top (the Wi-Fi chip opens the networks view instead of toggling), then a
-// seven-tab strip (calendar, timer, stopwatch, weather, media, notifications,
-// power) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
+// top (the Wi-Fi chip opens the networks view instead of toggling), then an
+// eight-tab strip (calendar, timer, stopwatch, weather, media, notifications,
+// power, app colors) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
 // morphs into it, same contract as Launcher.qml. Open state lives in
 // QuickSettings; the bar's empty space (or `qs ipc call quicksettings
 // toggleOn <output>`) toggles it. Timer/stopwatch/weather state lives here
@@ -62,14 +62,18 @@ Item {
             root.wifiError = "";
     }
 
+    // Views: 0-6 are the strip tabs, 7 is the chip-opened networks view, 8 is
+    // these settings. The palette icon stores its tab number explicitly so the
+    // Wi-Fi view keeps 7 without appearing in the strip.
     readonly property var tabs: [
-        { icon: "calendar_month" },
-        { icon: "timer" },
-        { icon: "stopwatch" },
-        { icon: "partly_cloudy_day" },
-        { icon: "music_note" },
-        { icon: "notifications" },
-        { icon: "power_settings_new" }
+        { icon: "calendar_month", tab: 0 },
+        { icon: "timer", tab: 1 },
+        { icon: "stopwatch", tab: 2 },
+        { icon: "partly_cloudy_day", tab: 3 },
+        { icon: "music_note", tab: 4 },
+        { icon: "notifications", tab: 5 },
+        { icon: "power_settings_new", tab: 6 },
+        { icon: "palette", tab: 8 }
     ]
 
     // ---- timer engine ----
@@ -716,13 +720,12 @@ Item {
                     delegate: Rectangle {
                         id: tabBtn
 
-                        required property int index
                         required property var modelData
 
                         width: 54
                         height: 36
                         radius: Theme.radiusMD
-                        color: root.currentTab === tabBtn.index ? Theme.surfaceContainerHigh : "transparent"
+                        color: root.currentTab === tabBtn.modelData.tab ? Theme.surfaceContainerHigh : "transparent"
                         scale: tabArea.pressed ? 0.94 : 1
 
                         Behavior on color {
@@ -736,7 +739,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: tabBtn.modelData.icon
-                            color: root.currentTab === tabBtn.index ? Theme.primary : Theme.onSurfaceVariant
+                            color: root.currentTab === tabBtn.modelData.tab ? Theme.primary : Theme.surfaceVariantText
                             font.family: Theme.iconFont
                             font.pixelSize: 20
 
@@ -750,7 +753,7 @@ Item {
 
                             anchors.fill: parent
 
-                            onClicked: root.currentTab = tabBtn.index
+                            onClicked: root.currentTab = tabBtn.modelData.tab
                         }
                     }
                 }
@@ -784,6 +787,10 @@ Item {
 
             PowerTab {
                 visible: root.currentTab === 6
+            }
+
+            SettingsTab {
+                visible: root.currentTab === 8
             }
 
             WifiTab {
@@ -863,7 +870,7 @@ Item {
             width: 36
             horizontalAlignment: Text.AlignRight
             text: Math.round(slider.effValue * 100) + "%"
-            color: Theme.onSurfaceVariant
+            color: Theme.surfaceVariantText
             font.family: Theme.fontFamily
             font.pixelSize: 12
         }
@@ -937,7 +944,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: chip.label
-                color: chip.checked ? Theme.containerText : Theme.onSurface
+                color: chip.checked ? Theme.containerText : Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 font.weight: chip.checked ? Font.DemiBold : Font.Medium
@@ -976,7 +983,7 @@ Item {
 
             anchors.centerIn: parent
             text: pill.label
-            color: pill.accent ? Theme.containerText : Theme.onSurface
+            color: pill.accent ? Theme.containerText : Theme.surfaceText
             font.family: Theme.fontFamily
             font.pixelSize: 12
             font.weight: Font.Medium
@@ -1051,7 +1058,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     text: Qt.locale().standaloneMonthName(cal.shownMonth.getMonth(), Locale.LongFormat)
                           + " " + cal.shownMonth.getFullYear()
-                    color: Theme.onSurface
+                    color: Theme.surfaceText
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                     font.weight: Font.DemiBold
@@ -1070,7 +1077,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "chevron_left"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.iconFont
                         font.pixelSize: 18
                     }
@@ -1097,7 +1104,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "chevron_right"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.iconFont
                         font.pixelSize: 18
                     }
@@ -1122,7 +1129,7 @@ Item {
                         width: cal.width / 7
                         horizontalAlignment: Text.AlignHCenter
                         text: Qt.locale().dayName(Locale.Monday + index, Locale.ShortFormat)
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
                     }
@@ -1156,8 +1163,8 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: cell.modelData.day
-                            color: cell.modelData.today ? Theme.onPrimary
-                                : cell.modelData.current ? Theme.onSurface : Theme.onSurfaceVariant
+                            color: cell.modelData.today ? Theme.primaryText
+                                : cell.modelData.current ? Theme.surfaceText : Theme.surfaceVariantText
                             opacity: cell.modelData.current ? 1 : 0.45
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
@@ -1187,7 +1194,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.fmtMs(root.timerRemainingMs)
-                color: root.timerRemainingMs > 0 || root.timerRunning ? Theme.onSurface : Theme.onSurfaceVariant
+                color: root.timerRemainingMs > 0 || root.timerRunning ? Theme.surfaceText : Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 34
                 font.weight: Font.DemiBold
@@ -1281,7 +1288,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.fmtSw(root.swElapsedMs)
-                color: Theme.onSurface
+                color: Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 34
                 font.weight: Font.DemiBold
@@ -1328,7 +1335,7 @@ Item {
                 visible: root.weatherLoading
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Loading…"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
@@ -1341,7 +1348,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "cloud_off"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.iconFont
                     font.pixelSize: 28
                 }
@@ -1349,7 +1356,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "No weather data — click to retry"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 12
                 }
@@ -1374,7 +1381,7 @@ Item {
 
                     Text {
                         text: root.weatherTemp + "°"
-                        color: Theme.onSurface
+                        color: Theme.surfaceText
                         font.family: Theme.fontFamily
                         font.pixelSize: 30
                         font.weight: Font.DemiBold
@@ -1382,7 +1389,7 @@ Item {
 
                     Text {
                         text: root.weatherDesc
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -1394,21 +1401,21 @@ Item {
 
                     Text {
                         text: "Feels " + root.weatherFeels + "°"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
 
                     Text {
                         text: "Wind " + root.weatherWind + " km/h"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
 
                     Text {
                         text: "Humidity " + root.weatherHumidity + "%"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -1433,7 +1440,7 @@ Item {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: hourCell.modelData.time
-                            color: Theme.onSurfaceVariant
+                            color: Theme.surfaceVariantText
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
                         }
@@ -1449,7 +1456,7 @@ Item {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: hourCell.modelData.temp + "°"
-                            color: Theme.onSurface
+                            color: Theme.surfaceText
                             font.family: Theme.fontFamily
                             font.pixelSize: 12
                         }
@@ -1486,7 +1493,7 @@ Item {
             visible: media.player === null
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Nothing playing"
-            color: Theme.onSurfaceVariant
+            color: Theme.surfaceVariantText
             font.family: Theme.fontFamily
             font.pixelSize: 13
         }
@@ -1514,7 +1521,7 @@ Item {
             Text {
                 width: parent.width
                 text: media.player?.trackTitle || "Unknown track"
-                color: Theme.onSurface
+                color: Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 font.weight: Font.DemiBold
@@ -1525,7 +1532,7 @@ Item {
                 width: parent.width
                 visible: (media.player?.trackArtist ?? "") !== ""
                 text: media.player?.trackArtist ?? ""
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 elide: Text.ElideRight
@@ -1766,7 +1773,7 @@ Item {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 text: "Connecting to " + root.wifiConnecting + "\u2026"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
             }
@@ -1787,7 +1794,7 @@ Item {
                     Text {
                         Layout.alignment: Qt.AlignVCenter
                         text: "lock"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.iconFont
                         font.pixelSize: 16
                     }
@@ -1802,7 +1809,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: pwInput.text === ""
                             text: "Password for " + root.wifiPasswordFor
-                            color: Theme.onSurfaceVariant
+                            color: Theme.surfaceVariantText
                             font.family: Theme.fontFamily
                             font.pixelSize: 13
                         }
@@ -1811,7 +1818,7 @@ Item {
                             id: pwInput
 
                             anchors.fill: parent
-                            color: Theme.onSurface
+                            color: Theme.surfaceText
                             font.family: Theme.fontFamily
                             font.pixelSize: 13
                             echoMode: TextInput.Password
@@ -1861,7 +1868,7 @@ Item {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: "Wi-Fi is off"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -1871,7 +1878,7 @@ Item {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: "Scanning\u2026"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -1881,7 +1888,7 @@ Item {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: "No networks found"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -1895,7 +1902,7 @@ Item {
                     Text {
                         visible: root.wifiSaved.length > 0
                         text: "Saved"
-                        color: Theme.onSurfaceVariant
+                        color: Theme.surfaceVariantText
                         font.family: Theme.fontFamily
                         font.pixelSize: 11
                     }
@@ -1942,7 +1949,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.wifiSignalIcon(netRow.modelData.signal)
-                color: netRow.modelData.inUse ? Theme.primary : Theme.onSurfaceVariant
+                color: netRow.modelData.inUse ? Theme.primary : Theme.surfaceVariantText
                 font.family: Theme.iconFont
                 font.pixelSize: 17
             }
@@ -1951,7 +1958,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: netRow.width - 150
                 text: netRow.modelData.ssid
-                color: Theme.onSurface
+                color: Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
                 elide: Text.ElideRight
@@ -1961,7 +1968,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: netRow.modelData.secured
                 text: "lock"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.iconFont
                 font.pixelSize: 13
             }
@@ -2020,7 +2027,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "bookmark"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.iconFont
                 font.pixelSize: 15
             }
@@ -2029,7 +2036,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: savedRow.width - 130
                 text: savedRow.modelData.name
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 elide: Text.ElideRight
@@ -2041,7 +2048,7 @@ Item {
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             text: "delete"
-            color: Theme.onSurfaceVariant
+            color: Theme.surfaceVariantText
             font.family: Theme.iconFont
             font.pixelSize: 16
 
@@ -2050,6 +2057,94 @@ Item {
                 hoverEnabled: true
 
                 onClicked: root.wifiForget(savedRow.modelData.name)
+            }
+        }
+    }
+
+    // App color targets: one chip per app, grouped by category. The shell
+    // rewrites the selected apps' configs whenever the matugen palette changes.
+    component SettingsTab: Item {
+        id: settingsTab
+
+        width: parent.width
+        height: settingsCol.implicitHeight
+
+        Column {
+            id: settingsCol
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            spacing: 10
+
+            RowLayout {
+                width: parent.width
+                spacing: 10
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "App colors"
+                    color: Theme.primary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                }
+
+                PillButton {
+                    accent: true
+                    label: "Apply now"
+
+                    onClicked: SystemTheme.applyAll()
+                }
+            }
+
+            Text {
+                width: parent.width
+                text: "Applications follow the wallpaper palette. Off keeps the last colors."
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+            }
+
+            Repeater {
+                model: SystemTheme.groups
+
+                delegate: Column {
+                    id: appGroup
+
+                    required property var modelData
+
+                    width: settingsCol.width
+                    spacing: 6
+
+                    Text {
+                        text: appGroup.modelData.label
+                        color: Theme.surfaceVariantText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 11
+                    }
+
+                    Flow {
+                        width: parent.width
+                        spacing: 6
+
+                        Repeater {
+                            model: appGroup.modelData.apps
+
+                            delegate: QsChip {
+                                required property var modelData
+
+                                icon: modelData.icon
+                                label: modelData.label
+                                checked: SystemTheme.enabled(modelData.id)
+
+                                onToggled: SystemTheme.setEnabled(modelData.id, !checked)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -2130,7 +2225,7 @@ Item {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: powerBtn.label
-                color: powerBtn.danger ? Theme.error : Theme.onSurface
+                color: powerBtn.danger ? Theme.error : Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
                 font.weight: Font.Medium

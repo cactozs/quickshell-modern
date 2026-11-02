@@ -129,7 +129,7 @@ Item {
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "search"
-                    color: input.activeFocus ? Theme.primary : Theme.onSurfaceVariant
+                    color: input.activeFocus ? Theme.primary : Theme.surfaceVariantText
                     font.family: Theme.iconFont
                     font.pixelSize: 20
 
@@ -143,7 +143,7 @@ Item {
                     anchors.leftMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Search history…"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                     visible: input.text.length === 0
@@ -159,12 +159,12 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     clip: true
 
-                    color: Theme.onSurface
+                    color: Theme.surfaceText
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                     selectByMouse: true
                     selectionColor: Theme.primary
-                    selectedTextColor: Theme.onPrimary
+                    selectedTextColor: Theme.primaryText
 
                     focus: root.active
 
@@ -194,7 +194,7 @@ Item {
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.results.length + "/" + root.entries.length
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -239,7 +239,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: root.entries.length === 0
                 text: "Clipboard is empty"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
@@ -248,7 +248,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: root.entries.length > 0 && root.results.length === 0
                 text: "No results"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
@@ -265,7 +265,7 @@ Item {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: "↑↓ — navigate · Esc — close"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -274,7 +274,7 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Enter to copy · Ctrl+Z — delete"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -346,7 +346,7 @@ Item {
                 anchors.centerIn: parent
                 visible: row.decoded === ""
                 text: "image"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.iconFont
                 font.pixelSize: 18
             }
@@ -368,7 +368,7 @@ Item {
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             text: row.binary ? row.caption : row.preview
-            color: row.binary ? Theme.onSurfaceVariant : Theme.onSurface
+            color: row.binary ? Theme.surfaceVariantText : Theme.surfaceText
             font.family: Theme.fontFamily
             font.pixelSize: 12
             maximumLineCount: 2
@@ -387,7 +387,7 @@ Item {
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             text: "close"
-            color: row.selected ? Theme.error : Theme.onSurfaceVariant
+            color: row.selected ? Theme.error : Theme.surfaceVariantText
             font.family: Theme.iconFont
             font.pixelSize: 16
             opacity: row.selected ? 1 : 0.5

@@ -202,7 +202,7 @@ Item {
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: "search"
-                    color: input.activeFocus ? Theme.primary : Theme.onSurfaceVariant
+                    color: input.activeFocus ? Theme.primary : Theme.surfaceVariantText
                     font.family: Theme.iconFont
                     font.pixelSize: 20
 
@@ -216,7 +216,7 @@ Item {
                     anchors.leftMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Search apps…"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                     visible: input.text.length === 0
@@ -232,12 +232,12 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     clip: true
 
-                    color: Theme.onSurface
+                    color: Theme.surfaceText
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                     selectByMouse: true
                     selectionColor: Theme.primary
-                    selectedTextColor: Theme.onPrimary
+                    selectedTextColor: Theme.primaryText
 
                     focus: root.active
 
@@ -256,7 +256,7 @@ Item {
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.results.length + "/" + root.allEntries.length
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -301,7 +301,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: root.results.length === 0
                 text: "No results"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
@@ -320,7 +320,7 @@ Item {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: "↑↓ — navigate · Esc — close"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -329,7 +329,7 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Enter to launch"
-                    color: Theme.onSurfaceVariant
+                    color: Theme.surfaceVariantText
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -356,7 +356,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: (iconBox.entry?.name || "?").charAt(0).toUpperCase()
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: Math.round(iconBox.size * 0.35)
             }
@@ -427,7 +427,7 @@ Item {
             Text {
                 width: parent.width
                 text: item.modelData.name || item.modelData.id
-                color: Theme.onSurface
+                color: Theme.surfaceText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
                 font.weight: item.selected ? Font.DemiBold : Font.Medium
@@ -438,7 +438,7 @@ Item {
                 width: parent.width
                 visible: text !== ""
                 text: item.modelData.comment || item.modelData.genericName || ""
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 11
                 elide: Text.ElideRight

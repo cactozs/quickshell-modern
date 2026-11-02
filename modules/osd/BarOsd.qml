@@ -54,7 +54,7 @@ Item {
             visible: Osd.value >= 0
             width: 40
             text: Math.round(Osd.value * 100) + "%"
-            color: Theme.onSurface
+            color: Theme.surfaceText
             font.family: Theme.fontFamily
             font.pixelSize: 14
             font.weight: Font.Medium
@@ -65,7 +65,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             visible: Osd.value < 0
             text: Osd.label
-            color: Theme.onSurface
+            color: Theme.surfaceText
             font.family: Theme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold

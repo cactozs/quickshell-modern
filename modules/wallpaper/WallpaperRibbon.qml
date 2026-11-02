@@ -156,7 +156,7 @@ Item {
                 anchors.centerIn: parent
                 visible: strip.count === 0
                 text: "No wallpapers found"
-                color: Theme.onSurfaceVariant
+                color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
             }
