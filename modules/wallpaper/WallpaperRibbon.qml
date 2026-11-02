@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Widgets
+import QtQuick.Shapes
 import "../../style"
 import "../../services"
 
@@ -55,9 +55,71 @@ Item {
         }
     }
 
-    // Rounded viewport for the strip: cut-off tiles end on a curve instead
-    // of a hard straight edge. Wraps the ListView in a ClippingRectangle.
-    ClippingRectangle {
+    // Software rendering can't curve-clip (ClippingRectangle is a shader), so
+    // paint the four corner slivers outside the rounded rect with the plate
+    // color. Only valid because the ribbon always sits on the opaque black
+    // plate (Theme.plate).
+    component RoundedMask: Shape {
+        id: mask
+
+        property real radius: Theme.radiusMD
+
+        anchors.fill: parent
+        antialiasing: true
+
+        ShapePath {
+            fillColor: Theme.plate
+            strokeWidth: -1
+            fillRule: ShapePath.OddEvenFill
+
+            startX: 0
+            startY: 0
+            PathLine { x: mask.width; y: 0 }
+            PathLine { x: mask.width; y: mask.height }
+            PathLine { x: 0; y: mask.height }
+            PathLine { x: 0; y: 0 }
+
+            // Inner rounded rect: the hole through which the image shows.
+            PathMove { x: mask.radius; y: 0 }
+            PathLine { x: mask.width - mask.radius; y: 0 }
+            PathArc {
+                x: mask.width
+                y: mask.radius
+                radiusX: mask.radius
+                radiusY: mask.radius
+                direction: PathArc.Clockwise
+            }
+            PathLine { x: mask.width; y: mask.height - mask.radius }
+            PathArc {
+                x: mask.width - mask.radius
+                y: mask.height
+                radiusX: mask.radius
+                radiusY: mask.radius
+                direction: PathArc.Clockwise
+            }
+            PathLine { x: mask.radius; y: mask.height }
+            PathArc {
+                x: 0
+                y: mask.height - mask.radius
+                radiusX: mask.radius
+                radiusY: mask.radius
+                direction: PathArc.Clockwise
+            }
+            PathLine { x: 0; y: mask.radius }
+            PathArc {
+                x: mask.radius
+                y: 0
+                radiusX: mask.radius
+                radiusY: mask.radius
+                direction: PathArc.Clockwise
+            }
+        }
+    }
+
+    // Viewport for the strip: cut-off tiles end at the plate's side margins.
+    // Plain Rectangle, not Quickshell's ClippingRectangle: that one is a
+    // ShaderEffect and the shell runs on the software backend.
+    Rectangle {
         id: stripClip
 
         anchors {
@@ -67,8 +129,8 @@ Item {
             margins: 12
         }
         height: root.thumbH
-        radius: Theme.radiusMD
         color: "transparent"
+        clip: true
 
         ListView {
             id: strip
@@ -100,6 +162,9 @@ Item {
             }
         }
 
+        // Round the viewport's corners without a shader (see RoundedMask).
+        RoundedMask {}
+
         // Wheel scrolling. acceptedButtons: NoButton keeps tile clicks
         // working; a WheelHandler fights the ListView's own wheel handling,
         // a MouseArea simply takes the events first.
@@ -115,7 +180,7 @@ Item {
     }
 
     // One wallpaper tile: thumbnail with the accent outline on the current one.
-    component Thumb: ClippingRectangle {
+    component Thumb: Rectangle {
         id: tile
 
         required property string modelData
@@ -124,12 +189,6 @@ Item {
         height: root.thumbH
         radius: Theme.radiusMD
         color: Theme.surfaceContainerHigh
-        border.width: Wallpaper.current === tile.modelData ? 2 : 0
-        border.color: Theme.primary
-
-        Behavior on border.width {
-            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-        }
 
         Image {
             anchors.fill: parent
@@ -137,6 +196,20 @@ Item {
             sourceSize: Qt.size(root.thumbW * 2, root.thumbH * 2)
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
+        }
+
+        RoundedMask { radius: tile.radius }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: tile.radius
+            color: "transparent"
+            border.width: Wallpaper.current === tile.modelData ? 2 : 0
+            border.color: Theme.primary
+
+            Behavior on border.width {
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            }
         }
 
         MouseArea {
