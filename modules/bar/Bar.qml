@@ -46,6 +46,10 @@ PanelWindow {
     readonly property bool qsOpen: QuickSettings.shown && QuickSettings.screen === modelData.name
     readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen || root.qsOpen
 
+    // Bar visibility, including the time it takes to fade. A panel opened
+    // while the bar is hidden keeps it on screen until the panel closes.
+    readonly property bool barShown: BarState.shown || root.panelOpen
+
     // OSD (volume/brightness/caps/layout) replaces the whole bar content for
     // a beat; suppressed while a real panel is morphed open.
     readonly property bool osdOpen: Osd.shown && !root.panelOpen
@@ -78,6 +82,10 @@ PanelWindow {
     // don't jump.
     exclusiveZone: Theme.barHeight
     color: "transparent"
+
+    // Mod+P (`qs ipc call bar toggle`) fades the bar out; the window stays
+    // mapped until the fade ends, then unmaps so niri reclaims the space.
+    visible: root.barShown || plate.opacity > 0.001
 
     WlrLayershell.namespace: "quickshell:bar"
     // Any open panel takes the keyboard so Esc can close it; at rest the bar
@@ -124,6 +132,12 @@ PanelWindow {
             : contentRow.implicitWidth + root.padH * 2
         clip: true
 
+        opacity: root.barShown ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+
         Behavior on width {
             NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
         }
@@ -142,7 +156,7 @@ PanelWindow {
         // stray click can't fight the open content.
         MouseArea {
             anchors.fill: parent
-            enabled: !root.panelOpen && !root.osdOpen
+            enabled: root.barShown && !root.panelOpen && !root.osdOpen
 
             onClicked: QuickSettings.toggle(root.modelData.name)
         }
@@ -307,6 +321,7 @@ PanelWindow {
         width: root.flare
         height: root.flare
         antialiasing: true
+        opacity: plate.opacity
 
         ShapePath {
             fillColor: Theme.plate
@@ -339,6 +354,7 @@ PanelWindow {
         width: root.flare + 1
         height: root.flare
         antialiasing: true
+        opacity: plate.opacity
 
         ShapePath {
             fillColor: Theme.plate
@@ -371,6 +387,7 @@ PanelWindow {
         width: plate.width + root.flare * 2
         height: plate.height
         antialiasing: true
+        opacity: plate.opacity
 
         ShapePath {
             fillColor: "transparent"
