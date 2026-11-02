@@ -30,6 +30,10 @@ Singleton {
         ((Quickshell.screens.find(s => s.name === root.screen)?.width ?? 1920)
          - Theme.barSideMargin * 2) - 160)
 
+    // Height of the morphed plate, mirrored from Bar.qml so the panel scrim
+    // (PanelScrim.qml) can cut the hole to the panel itself, not the column.
+    property int plateHeight: Theme.barHeight
+
     function toggle(screenName: string): void {
         if (root.shown) {
             root.shown = false;

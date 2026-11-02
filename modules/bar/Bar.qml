@@ -89,6 +89,17 @@ PanelWindow {
 
     mask: Region { item: plate }
 
+    // Publish the live plate height for PanelScrim's click-through hole. The
+    // height is content-driven, so only the bar whose panel is open writes.
+    Binding {
+        target: root.launcherOpen ? LauncherState
+            : root.wallpaperOpen ? Wallpaper
+            : root.clipboardOpen ? Clipboard : QuickSettings
+        property: "plateHeight"
+        value: root.implicitHeight
+        when: root.panelOpen
+    }
+
     // Singletons are lazy: Audio, Brightness and CapsLock are referenced by
     // nothing else, so touch them once or their Process/Connections never
     // come alive (Osd and Niri wake through the bindings above).

@@ -26,6 +26,10 @@ Singleton {
         ((Quickshell.screens.find(s => s.name === root.screen)?.width ?? 1920)
          - Theme.barSideMargin * 2) - 160)
 
+    // Height of the morphed plate, mirrored from Bar.qml so the panel scrim
+    // (PanelScrim.qml) can cut the hole to the panel itself, not the column.
+    property int plateHeight: Theme.barHeight
+
     // Binary rows decode to one file per cliphist id here; wiped at startup
     // so ids reused after `cliphist wipe` can't show stale previews.
     readonly property string thumbDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp")
