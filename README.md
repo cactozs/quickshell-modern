@@ -15,7 +15,8 @@ keeps the whole desktop in sync with the wallpaper.
 ## Features
 
 - **Peninsula bar** — a compact plate pinned to the top edge, with concave flare wings
-  that blend it into the screen. Workspace pills, a centered clock, keyboard layout,
+  that blend it into the screen, or a floating island with a gap above (switchable in
+  quick settings → Bar style). Workspace pills, a centered clock, keyboard layout,
   network state and a battery pill.
 - **One surface, many panels** — the bar morphs into the launcher, quick settings,
   wallpaper ribbon or clipboard picker on the monitor you target. `Esc`, the scrim or a
@@ -152,6 +153,7 @@ All panel state can be driven with `qs ipc call <target> <function> [args...]`:
 | Target | Function | Description |
 | --- | --- | --- |
 | `bar` | `toggle` | Hide or show the bar on every output |
+| `bar` | `setStyle <notch\|island>` / `getStyle` | Switch or read the bar outline style |
 | `launcher` | `toggle` / `toggleOn <screen>` / `close` | Open, open on a specific output, or close |
 | `quicksettings` | `toggle` / `toggleOn <screen>` / `close` | Open, open on a specific output, or close |
 | `quicksettings` | `openTab <screen> <index>` | Open the panel on a specific tab |
@@ -175,7 +177,7 @@ Quick settings tab indexes:
 | `5` | Notifications |
 | `6` | Power |
 | `7` | Wi-Fi networks |
-| `8` | App colors |
+| `8` | Bar style / app colors |
 
 Examples:
 

@@ -2135,6 +2135,48 @@ Item {
             }
             spacing: 10
 
+            Text {
+                text: "Bar style"
+                color: Theme.primary
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+            }
+
+            Row {
+                spacing: 6
+
+                QsChip {
+                    icon: "vertical_align_top"
+                    label: "Notch"
+                    checked: !BarState.island
+
+                    onToggled: BarState.setStyle("notch")
+                }
+
+                QsChip {
+                    icon: "crop_free"
+                    label: "Island"
+                    checked: BarState.island
+
+                    onToggled: BarState.setStyle("island")
+                }
+            }
+
+            Text {
+                width: parent.width
+                text: "Notch sits flush with the top edge; Island floats with a gap."
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.plateBorder
+            }
+
             RowLayout {
                 width: parent.width
                 spacing: 10

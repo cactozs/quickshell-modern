@@ -20,6 +20,9 @@ Singleton {
     // ---- geometry ----
     readonly property int barHeight: 40
     readonly property int barSideMargin: 12
+    readonly property int barIslandMargin: 8
+    // A pill: the largest radius the 40px bar can take without clipping.
+    readonly property int barIslandRadius: barHeight / 2
     readonly property int radiusLG: 18
     readonly property int radiusXL: 24
     readonly property int radiusMD: 12

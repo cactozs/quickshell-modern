@@ -7,5 +7,8 @@ style/Colors*.json
 # app color target toggles (quick settings)
 theme-apps.json
 
+# bar style setting (quick settings)
+bar.json
+
 # zcode session artifacts
 .zcode/

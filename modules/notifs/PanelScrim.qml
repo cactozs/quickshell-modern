@@ -36,12 +36,13 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
 
     // The morphed BAR panel's rect (launcher, wallpaper ribbon, clipboard
-    // picker or quick settings, all centered on the plate and pinned to the
-    // top) is subtracted from the input mask: the scrim maps after the bar,
-    // so without the hole it would sit on top of the grown plate and swallow
-    // its clicks. The panels are mutually exclusive, so only one width/height
-    // applies at a time. Width lives with each panel's state; height is
-    // content-driven and mirrored from Bar.qml.
+    // picker or quick settings, all centered on the plate and pinned below the
+    // top edge) is subtracted from the input mask: the scrim maps after the
+    // bar, so without the hole it would sit on top of the grown plate and
+    // swallow its clicks. The panels are mutually exclusive, so only one
+    // width/height applies at a time. Width lives with each panel's state;
+    // height is content-driven and mirrored from Bar.qml. The island style
+    // shifts the whole plate down by BarState.topMargin.
     readonly property int holeW: LauncherState.shown ? LauncherState.plateWidth
         : Wallpaper.shown ? Wallpaper.plateWidth
         : Clipboard.shown ? Clipboard.plateWidth : QuickSettings.plateWidth
@@ -57,7 +58,7 @@ PanelWindow {
 
         Region {
             x: root.holeX
-            y: 0
+            y: BarState.topMargin
             width: root.holeW
             height: root.holeH
             intersection: Intersection.Subtract

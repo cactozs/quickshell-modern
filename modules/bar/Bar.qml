@@ -23,6 +23,11 @@ import "."
 // edge itself. Only the plate takes input (mask); the exclusive zone keeps
 // windows below it with a small gap.
 //
+// In the "island" style (BarState), the plate floats instead: a gap above the
+// top edge, rounded corners on every side and no flare wings. Everything else
+// — the centered content, the panel morph and the exclusive zone — is the
+// same.
+//
 // When the launcher opens on this monitor, the plate morphs into it: it
 // widens and grows downward while the widgets fade into the launcher
 // content. The exclusive zone stays at the resting height so windows
@@ -63,7 +68,7 @@ PanelWindow {
     }
 
     margins {
-        top: 0
+        top: BarState.topMargin
         left: Theme.barSideMargin
         right: Theme.barSideMargin
     }
@@ -116,9 +121,11 @@ PanelWindow {
         CapsLock.capsOn;
     }
 
-    // Bottom corners only: the capsule is drawn one radius taller and shifted
-    // up, and the plate clips its top rounding away — so the bar meets the
-    // top edge with straight sides.
+    // The plate clips its content to the bar bounds. In the notch style it is
+    // drawn one radius taller and shifted up, so the top rounding is clipped
+    // away and the bar meets the top edge with straight sides; in the island
+    // style it is a pill-shaped plate (radius = half the bar height) with a gap
+    // above.
     Item {
         id: plate
 
@@ -143,11 +150,13 @@ PanelWindow {
         }
 
         Rectangle {
-            y: -Theme.radiusLG
+            y: BarState.island ? 0 : -Theme.radiusLG
             width: parent.width
-            height: parent.height + Theme.radiusLG
-            radius: Theme.radiusLG
+            height: parent.height + (BarState.island ? 0 : Theme.radiusLG)
+            radius: BarState.island ? Theme.barIslandRadius : Theme.radiusLG
             color: Theme.plate
+            border.width: BarState.island ? 1 : 0
+            border.color: Theme.plateBorder
         }
 
         // Click anywhere on the bar's empty space to open the quick settings
@@ -322,6 +331,7 @@ PanelWindow {
         height: root.flare
         antialiasing: true
         opacity: plate.opacity
+        visible: !BarState.island
 
         ShapePath {
             fillColor: Theme.plate
@@ -355,6 +365,7 @@ PanelWindow {
         height: root.flare
         antialiasing: true
         opacity: plate.opacity
+        visible: !BarState.island
 
         ShapePath {
             fillColor: Theme.plate
@@ -374,10 +385,11 @@ PanelWindow {
         }
     }
 
-    // One continuous outline over the composite silhouette: top edge → left
-    // fillet → left side → bottom-left corner → bottom → bottom-right corner
-    // → right side → right fillet → top edge. The top edge itself stays
-    // unstroked so the plate merges into it.
+    // Notch only: one continuous outline over the composite silhouette: top
+    // edge → left fillet → left side → bottom-left corner → bottom →
+    // bottom-right corner → right side → right fillet → top edge. The top edge
+    // itself stays unstroked so the plate merges into it. The island style
+    // gets its border from the plate rectangle instead.
     Shape {
         id: outline
 
@@ -388,6 +400,7 @@ PanelWindow {
         height: plate.height
         antialiasing: true
         opacity: plate.opacity
+        visible: !BarState.island
 
         ShapePath {
             fillColor: "transparent"
