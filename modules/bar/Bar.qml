@@ -55,6 +55,30 @@ PanelWindow {
     // while the bar is hidden keeps it on screen until the panel closes.
     readonly property bool barShown: BarState.shown || root.panelOpen
 
+    // Island only: at rest the plate shows just the clock. A workspace switch
+    // flashes the dots in (the clock stays), hovering reveals the full row.
+    property bool islandHovered: false
+    readonly property var islandWorkspaces: Niri.workspacesFor(root.modelData.name)
+    readonly property int islandActiveWs: {
+        if (!BarState.island) return -1;
+        const ws = root.islandWorkspaces.find(w => w.is_active);
+        return ws ? ws.idx : -1;
+    }
+    property int lastActiveWs: -1
+    readonly property bool islandExpanded: !BarState.island || root.islandHovered || wsFlash.running
+
+    onIslandActiveWsChanged: {
+        // No flash on the first niri sync or while the island is off.
+        if (BarState.island && root.lastActiveWs !== -1 && root.islandActiveWs !== -1)
+            wsFlash.restart();
+        root.lastActiveWs = root.islandActiveWs;
+    }
+
+    Timer {
+        id: wsFlash
+        interval: 1500
+    }
+
     // OSD (volume/brightness/caps/layout) replaces the whole bar content for
     // a beat; suppressed while a real panel is morphed open.
     readonly property bool osdOpen: Osd.shown && !root.panelOpen
@@ -159,6 +183,14 @@ PanelWindow {
             border.color: Theme.plateBorder
         }
 
+        // Hover-to-expand lives on the plate itself so the dots' own
+        // MouseAreas don't have to forward it; it covers the whole pill.
+        HoverHandler {
+            id: hoverHandler
+
+            onHoveredChanged: root.islandHovered = hoverHandler.hovered
+        }
+
         // Click anywhere on the bar's empty space to open the quick settings
         // panel. The widgets' own areas sit above this and consume their
         // clicks; while a panel or the OSD is morphed, this stays off so a
@@ -192,11 +224,13 @@ PanelWindow {
             Workspaces {
                 Layout.alignment: Qt.AlignVCenter
                 screenName: root.modelData.name
+                visible: root.islandExpanded
             }
 
             Item {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 10
+                visible: root.islandExpanded
             }
 
             Clock {
@@ -206,11 +240,13 @@ PanelWindow {
             Item {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 10
+                visible: root.islandExpanded
             }
 
             StatusRight {
                 Layout.alignment: Qt.AlignVCenter
                 screenName: root.modelData.name
+                visible: root.islandExpanded
             }
         }
 
