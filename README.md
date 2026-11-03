@@ -66,7 +66,7 @@ keeps the whole desktop in sync with the wallpaper.
 - **NetworkManager** (`nmcli`) — network status and Wi-Fi management.
 - **BlueZ** (`bluetoothctl`) — Bluetooth state and toggling.
 - **PipeWire + WirePlumber** and `pactl` (from `libpulse`) — audio state and volume control.
-- **curl** — weather data from `wttr.in`.
+- **curl** — weather data from `api.open-meteo.com` (location via `ipwho.is`).
 - **Google Sans** and **Material Symbols Rounded** — the default UI fonts.
 - Optional: **jq** for focused-output keybinds, **bat** for the bat color target.
 
@@ -347,7 +347,8 @@ still land.
   restarts.
 - **Timer and stopwatch are in-memory.** They survive closing the panel but reset on shell
   restart.
-- **Weather needs network access.** Data comes from `wttr.in`; no API key is required.
+- **Weather needs network access.** Data comes from `api.open-meteo.com`; the location is
+  detected by IP through `ipwho.is`. No API key is required.
 - **Wallpaper directory is fixed** to `~/Pictures/Wallpapers`.
 - **App theme files are overwritten.** Disable a target in App colors if you maintain that
   file by hand.

@@ -99,6 +99,7 @@ Item {
     property string weatherWind: ""
     property string weatherHumidity: ""
     property var weatherHours: []
+    property var weatherCoords: null
 
     // ---- wifi / bluetooth chip state ----
     property bool wifiAvailable: true
@@ -186,33 +187,71 @@ Item {
         root.swElapsedMs = 0;
     }
 
-    function weatherCodeIcon(code: string): string {
+    // WMO weather codes used by Open-Meteo.
+    function weatherCodeInfo(code: var): var {
         const c = parseInt(code);
-        if (isNaN(c))
-            return "partly_cloudy_day";
-        if (c === 113)
-            return "clear_day";
-        if (c === 116)
-            return "partly_cloudy_day";
-        if (c === 119 || c === 122)
-            return "cloud";
-        if (c === 143 || c === 248 || c === 260)
-            return "foggy";
-        if (c >= 600 && c < 700)
-            return "weather_snowy";
-        if (c >= 200 && c < 300)
-            return "thunderstorm";
-        if (c >= 300)
-            return "rainy";
-        return "cloud";
+        if (c === 0)
+            return { icon: "clear_day", desc: "Clear" };
+        if (c === 1)
+            return { icon: "partly_cloudy_day", desc: "Mainly clear" };
+        if (c === 2)
+            return { icon: "partly_cloudy_day", desc: "Partly cloudy" };
+        if (c === 3)
+            return { icon: "cloud", desc: "Overcast" };
+        if (c === 45 || c === 48)
+            return { icon: "foggy", desc: "Fog" };
+        if (c >= 51 && c <= 57)
+            return { icon: "rainy", desc: "Drizzle" };
+        if (c >= 61 && c <= 67)
+            return { icon: "rainy", desc: "Rain" };
+        if (c >= 71 && c <= 77)
+            return { icon: "weather_snowy", desc: "Snow" };
+        if (c >= 80 && c <= 82)
+            return { icon: "rainy", desc: "Showers" };
+        if (c >= 85 && c <= 86)
+            return { icon: "weather_snowy", desc: "Snow showers" };
+        if (c >= 95)
+            return { icon: "thunderstorm", desc: "Thunderstorm" };
+        return { icon: "partly_cloudy_day", desc: "" };
     }
 
     function fetchWeather(): void {
-        if (weatherProc.running)
+        if (geoProc.running || weatherProc.running)
             return;
         root.weatherLoading = true;
         root.weatherFailed = false;
+        if (root.weatherCoords !== null)
+            root.startWeatherFetch();
+        else
+            geoProc.running = true;
+    }
+
+    function startWeatherFetch(): void {
+        const c = root.weatherCoords;
+        weatherProc.command = ["curl", "-s", "--max-time", "8",
+            "https://api.open-meteo.com/v1/forecast?latitude=" + c.lat
+            + "&longitude=" + c.lon
+            + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m"
+            + "&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=2"];
         weatherProc.running = true;
+    }
+
+    function applyGeo(text: string): void {
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            root.weatherLoading = false;
+            root.weatherFailed = true;
+            return;
+        }
+        if (!data?.success || data.latitude === undefined || data.longitude === undefined) {
+            root.weatherLoading = false;
+            root.weatherFailed = true;
+            return;
+        }
+        root.weatherCoords = { lat: data.latitude, lon: data.longitude };
+        root.startWeatherFetch();
     }
 
     function applyWeather(text: string): void {
@@ -224,28 +263,30 @@ Item {
             root.weatherFailed = true;
             return;
         }
-        const cur = data?.current_condition?.[0];
+        const cur = data?.current;
         if (!cur) {
             root.weatherFailed = true;
             return;
         }
+        const info = root.weatherCodeInfo(cur.weather_code);
         root.weatherFailed = false;
-        root.weatherTemp = cur.temp_C;
-        root.weatherFeels = cur.FeelsLikeC;
-        root.weatherDesc = cur.weatherDesc?.[0]?.value ?? "";
-        root.weatherIcon = root.weatherCodeIcon(cur.weatherCode);
-        root.weatherWind = cur.windspeedKmph;
-        root.weatherHumidity = cur.humidity;
-        // today's remaining hours, spilling into tomorrow if late
-        const hourly = (data.weather?.[0]?.hourly ?? []).concat(data.weather?.[1]?.hourly ?? []);
-        const nowH = new Date().getHours();
-        root.weatherHours = hourly
-            .filter(h => parseInt(h.time) / 100 > nowH)
+        root.weatherTemp = Math.round(cur.temperature_2m);
+        root.weatherFeels = Math.round(cur.apparent_temperature);
+        root.weatherDesc = info.desc;
+        root.weatherIcon = info.icon;
+        root.weatherWind = Math.round(cur.wind_speed_10m);
+        root.weatherHumidity = cur.relative_humidity_2m;
+        // next hours from now, spilling into tomorrow if late
+        const hourly = data.hourly ?? {};
+        const times = hourly.time ?? [];
+        root.weatherHours = times
+            .map((time, i) => ({ time, i }))
+            .filter(h => h.time > cur.time)
             .slice(0, 3)
             .map(h => ({
-                time: parseInt(h.time) / 100 + ":00",
-                temp: h.tempC,
-                icon: root.weatherCodeIcon(h.weatherCode)
+                time: h.time.substring(11, 16),
+                temp: Math.round(hourly.temperature_2m[h.i]),
+                icon: root.weatherCodeInfo(hourly.weather_code[h.i]).icon
             }));
     }
 
@@ -470,9 +511,24 @@ Item {
     }
 
     Process {
-        id: weatherProc
+        id: geoProc
 
-        command: ["curl", "-s", "--max-time", "6", "https://wttr.in/?format=j1"]
+        command: ["curl", "-s", "--max-time", "8", "https://ipwho.is/"]
+
+        stdout: StdioCollector {
+            onStreamFinished: root.applyGeo(text)
+        }
+
+        onExited: exitCode => {
+            if (exitCode !== 0) {
+                root.weatherLoading = false;
+                root.weatherFailed = true;
+            }
+        }
+    }
+
+    Process {
+        id: weatherProc
 
         stdout: StdioCollector {
             onStreamFinished: root.applyWeather(text)
