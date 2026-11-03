@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container: archlinux:base
+    steps:
+      - name: Install Quickshell and git
+        run: pacman -Syu --noconfirm --needed quickshell git
+
+      - uses: actions/checkout@v7
+
+      - name: Lint QML
+        run: /usr/lib/qt6/bin/qmllint $(git ls-files '*.qml' '*.js')
