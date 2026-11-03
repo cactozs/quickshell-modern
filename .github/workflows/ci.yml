@@ -20,4 +20,6 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Lint QML
-        run: /usr/lib/qt6/bin/qmllint $(git ls-files '*.qml' '*.js')
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          /usr/lib/qt6/bin/qmllint $(git ls-files '*.qml' '*.js')
