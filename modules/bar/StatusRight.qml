@@ -95,12 +95,26 @@ RowLayout {
                 "battery_android_4", "battery_android_5", "battery_android_6"][Math.round(battPct * 6)];
     }
 
-    Text {
+    Row {
         visible: root.hasBattery
         Layout.alignment: Qt.AlignVCenter
-        text: root.battIcon
-        color: root.battLow ? Theme.error : Theme.primary
-        font.family: Theme.iconFont
-        font.pixelSize: 17
+        spacing: 4
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.battIcon
+            color: root.battLow ? Theme.error : Theme.primary
+            font.family: Theme.iconFont
+            font.pixelSize: 17
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: Math.round(root.battPct * 100) + "%"
+            color: root.battLow ? Theme.error : Theme.primary
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+        }
     }
 }
