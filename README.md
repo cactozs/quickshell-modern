@@ -68,6 +68,7 @@ keeps the whole desktop in sync with the wallpaper.
 - **BlueZ** (`bluetoothctl`) — Bluetooth state and toggling.
 - **PipeWire + WirePlumber** and `pactl` (from `libpulse`) — audio state and volume control.
 - **curl** — weather data from `api.open-meteo.com` (location via `ipwho.is`).
+- **fd** — recursive scan of the wallpaper directory.
 - **Google Sans** and **Material Symbols Rounded** — the default UI fonts.
 - Optional: **jq** for focused-output keybinds, **bat** for the bat color target.
 
@@ -75,7 +76,7 @@ On Arch Linux, the core packages are:
 
 ```bash
 sudo pacman -S --needed quickshell niri matugen cliphist wl-clipboard \
-  brightnessctl networkmanager bluez-utils wireplumber libpulse curl jq \
+  brightnessctl networkmanager bluez-utils wireplumber libpulse curl jq fd \
   ttf-material-symbols-variable
 ```
 
@@ -313,7 +314,7 @@ Dropping an image file on empty desktop copies it into `~/Pictures/Wallpapers` a
 it immediately. Non-file URLs and unsupported extensions are ignored.
 
 The wallpaper directory is currently fixed in `services/Wallpaper.qml`; change
-`root.list`'s `find` path there if your collection lives elsewhere.
+the `fd` path there if your collection lives elsewhere.
 
 ## Project structure
 

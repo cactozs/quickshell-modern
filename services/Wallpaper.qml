@@ -105,9 +105,9 @@ Singleton {
     Process {
         id: scan
 
-        command: ["find", Quickshell.env("HOME") + "/Pictures/Wallpapers", "-type", "f",
-                  "(", "-iname", "*.jpg", "-o", "-iname", "*.jpeg", "-o", "-iname", "*.png",
-                  "-o", "-iname", "*.webp", ")"]
+        command: ["fd", "-H", "-I", "-t", "f",
+                  "-e", "jpg", "-e", "jpeg", "-e", "png", "-e", "webp",
+                  ".", Quickshell.env("HOME") + "/Pictures/Wallpapers"]
 
         stdout: StdioCollector {
             onStreamFinished: {

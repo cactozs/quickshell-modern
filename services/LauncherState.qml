@@ -60,6 +60,7 @@ Singleton {
     FileView {
         path: Qt.resolvedUrl("LauncherCounts.json")
         printErrors: false
+        onAdapterUpdated: writeAdapter()
 
         JsonAdapter {
             id: countsJson

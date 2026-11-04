@@ -10,5 +10,8 @@ theme-apps.json
 # bar style setting (quick settings)
 bar.json
 
+# launcher launch counts (sort order)
+services/LauncherCounts.json
+
 # zcode session artifacts
 .zcode/
