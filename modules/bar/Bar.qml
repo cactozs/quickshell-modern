@@ -51,6 +51,10 @@ PanelWindow {
     readonly property bool qsOpen: QuickSettings.shown && QuickSettings.screen === modelData.name
     readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen || root.qsOpen
 
+    // iOS sheet timing: opening runs longer than closing, as a sheet that is
+    // pushed away dismisses faster than it is pulled up.
+    readonly property int morphDuration: root.panelOpen ? 120 : 85
+
     // Bar visibility, including the time it takes to fade. A panel opened
     // while the bar is hidden keeps it on screen until the panel closes.
     readonly property bool barShown: BarState.shown || root.panelOpen
@@ -103,7 +107,11 @@ PanelWindow {
         : root.qsOpen ? qsPanel.height : Theme.barHeight
 
     Behavior on implicitHeight {
-        NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
+        NumberAnimation {
+            duration: root.morphDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: [0.32, 0.72, 0, 1]
+        }
     }
 
     exclusionMode: ExclusionMode.Normal
@@ -170,7 +178,11 @@ PanelWindow {
         }
 
         Behavior on width {
-            NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
+            NumberAnimation {
+                duration: root.morphDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.32, 0.72, 0, 1]
+            }
         }
 
         Rectangle {
@@ -217,8 +229,15 @@ PanelWindow {
 
             Behavior on opacity {
                 // fade the bar widgets out fast so they don't linger through
-                // the morph
-                NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                // the morph; bringing them back waits for the panel content
+                // to clear, otherwise the QS mirror row double-exposes
+                SequentialAnimation {
+                    PauseAnimation { duration: (root.panelOpen || root.osdOpen) ? 0 : 25 }
+                    NumberAnimation {
+                        duration: (root.panelOpen || root.osdOpen) ? 30 : 40
+                        easing.type: Easing.OutCubic
+                    }
+                }
             }
 
             Workspaces {
@@ -260,16 +279,22 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
-            visible: root.launcherOpen
+            // stay mapped through the closing fade; enabled cuts input at once
+            visible: root.launcherOpen || opacity > 0.001
+            enabled: root.launcherOpen
             active: root.launcherOpen
 
             // fade the launcher content in just after the plate starts
-            // growing, so the morph reads as one motion
+            // growing, so the morph reads as one motion; closing fades out
+            // immediately so the shrinking plate never clips a live panel
             opacity: root.launcherOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    PauseAnimation { duration: root.launcherOpen ? 15 : 0 }
+                    NumberAnimation {
+                        duration: root.launcherOpen ? 55 : 30
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }
@@ -284,14 +309,18 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
-            visible: root.wallpaperOpen
+            visible: root.wallpaperOpen || opacity > 0.001
+            enabled: root.wallpaperOpen
             active: root.wallpaperOpen
 
             opacity: root.wallpaperOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    PauseAnimation { duration: root.wallpaperOpen ? 15 : 0 }
+                    NumberAnimation {
+                        duration: root.wallpaperOpen ? 55 : 30
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }
@@ -305,14 +334,18 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
-            visible: root.clipboardOpen
+            visible: root.clipboardOpen || opacity > 0.001
+            enabled: root.clipboardOpen
             active: root.clipboardOpen
 
             opacity: root.clipboardOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    PauseAnimation { duration: root.clipboardOpen ? 15 : 0 }
+                    NumberAnimation {
+                        duration: root.clipboardOpen ? 55 : 30
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }
@@ -327,15 +360,19 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
-            visible: root.qsOpen
+            visible: root.qsOpen || opacity > 0.001
+            enabled: root.qsOpen
             active: root.qsOpen
             screenName: root.modelData.name
 
             opacity: root.qsOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    PauseAnimation { duration: root.qsOpen ? 15 : 0 }
+                    NumberAnimation {
+                        duration: root.qsOpen ? 55 : 30
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }
@@ -346,13 +383,16 @@ PanelWindow {
             id: osd
 
             anchors.centerIn: parent
-            visible: root.osdOpen
+            visible: root.osdOpen || opacity > 0.001
 
             opacity: root.osdOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 50 }
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    PauseAnimation { duration: root.osdOpen ? 7 : 0 }
+                    NumberAnimation {
+                        duration: root.osdOpen ? 40 : 25
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }

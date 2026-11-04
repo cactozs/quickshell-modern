@@ -45,6 +45,10 @@ Item {
     // Notifs.toggleCenter) can open the panel directly on a tab.
     property int currentTab: QuickSettings.tab
 
+    // Index in `tabs`, not the raw tab id: the Wi-Fi view (7) has no button
+    // in the strip, so the indicator hides there.
+    readonly property int activeTabIndex: root.tabs.findIndex(t => t.tab === root.currentTab)
+
     onCurrentTabChanged: {
         QuickSettings.tab = currentTab;
         if (currentTab === 7) {
@@ -764,52 +768,82 @@ Item {
 
             // ---- tab strip ----
 
-            Row {
-                id: tabBar
+            Item {
+                id: tabStrip
 
+                readonly property int buttonWidth: 54
+                readonly property int buttonSpacing: 4
+
+                width: tabBar.implicitWidth
+                height: tabBar.implicitHeight
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 4
 
-                Repeater {
-                    model: root.tabs
+                // One pill that glides between tabs, like a segmented control.
+                Rectangle {
+                    id: tabIndicator
 
-                    delegate: Rectangle {
-                        id: tabBtn
+                    width: tabStrip.buttonWidth
+                    height: 36
+                    radius: Theme.radiusMD
+                    color: Theme.surfaceContainerHigh
+                    x: Math.max(0, root.activeTabIndex) * (tabStrip.buttonWidth + tabStrip.buttonSpacing)
+                    opacity: root.activeTabIndex >= 0 ? 1 : 0
 
-                        required property var modelData
+                    Behavior on x {
+                        SpringAnimation { spring: 30; damping: 1.8; mass: 0.4 }
+                    }
 
-                        width: 54
-                        height: 36
-                        radius: Theme.radiusMD
-                        color: root.currentTab === tabBtn.modelData.tab ? Theme.surfaceContainerHigh : "transparent"
-                        scale: tabArea.pressed ? 0.94 : 1
+                    Behavior on opacity {
+                        NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                    }
+                }
 
-                        Behavior on color {
-                            ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
-                        }
+                Row {
+                    id: tabBar
 
-                        Behavior on scale {
-                            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
-                        }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: tabStrip.buttonSpacing
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: tabBtn.modelData.icon
-                            color: root.currentTab === tabBtn.modelData.tab ? Theme.primary : Theme.surfaceVariantText
-                            font.family: Theme.iconFont
-                            font.pixelSize: 20
+                    Repeater {
+                        model: root.tabs
 
-                            Behavior on color {
-                                ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        delegate: Rectangle {
+                            id: tabBtn
+
+                            required property var modelData
+
+                            width: tabStrip.buttonWidth
+                            height: 36
+                            radius: Theme.radiusMD
+                            color: "transparent"
+                            scale: tabArea.pressed ? 0.97 : 1
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: tabArea.pressed ? 30 : 50
+                                    easing.type: Easing.OutCubic
+                                }
                             }
-                        }
 
-                        MouseArea {
-                            id: tabArea
+                            Text {
+                                anchors.centerIn: parent
+                                text: tabBtn.modelData.icon
+                                color: root.currentTab === tabBtn.modelData.tab ? Theme.primary : Theme.surfaceVariantText
+                                font.family: Theme.iconFont
+                                font.pixelSize: 20
 
-                            anchors.fill: parent
+                                Behavior on color {
+                                    ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                }
+                            }
 
-                            onClicked: root.currentTab = tabBtn.modelData.tab
+                            MouseArea {
+                                id: tabArea
+
+                                anchors.fill: parent
+
+                                onClicked: root.currentTab = tabBtn.modelData.tab
+                            }
                         }
                     }
                 }
@@ -913,7 +947,7 @@ Item {
 
                 Behavior on width {
                     enabled: !dragArea.pressed
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
                 }
             }
         }
@@ -973,14 +1007,21 @@ Item {
         color: chip.checked ? Theme.primaryContainer : Theme.surfaceContainerHigh
         border.width: chip.checked ? 1 : 0
         border.color: Theme.primary
-        scale: chipArea.pressed ? 0.96 : 1
+        scale: chipArea.pressed ? 0.97 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on border.width {
+            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
         }
 
         Behavior on scale {
-            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: chipArea.pressed ? 30 : 50
+                easing.type: Easing.OutCubic
+            }
         }
 
         Row {
@@ -1028,10 +1069,13 @@ Item {
         implicitHeight: 30
         radius: 15
         color: pill.accent ? Theme.primaryContainer : Theme.surfaceContainerHigh
-        scale: pillArea.pressed ? 0.96 : 1
+        scale: pillArea.pressed ? 0.97 : 1
 
         Behavior on scale {
-            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: pillArea.pressed ? 30 : 50
+                easing.type: Easing.OutCubic
+            }
         }
 
         Text {
@@ -2302,10 +2346,13 @@ Item {
             : Theme.surfaceContainerHigh
         border.width: powerBtn.danger ? 1 : 0
         border.color: Theme.error
-        scale: powerArea.pressed ? 0.98 : 1
+        scale: powerArea.pressed ? 0.97 : 1
 
         Behavior on scale {
-            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: powerArea.pressed ? 30 : 50
+                easing.type: Easing.OutCubic
+            }
         }
 
         Row {

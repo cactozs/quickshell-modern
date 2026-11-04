@@ -20,7 +20,9 @@ PanelWindow {
         && QuickSettings.tab === Notifs.notifsTab
         && QuickSettings.screen === (Quickshell.screens[0]?.name ?? "")
 
-    visible: Notifs.popups.length > 0 && !centerHere
+    // Keep the surface mapped while the last card collapses; hide only once
+    // the column has no height left, otherwise the exit animation is cut off.
+    visible: (Notifs.popups.length > 0 || cards.implicitHeight > 0.5) && !centerHere
     screen: Quickshell.screens[0] ?? null
 
     anchors {

@@ -25,15 +25,15 @@ Rectangle {
 
     Behavior on height {
         // one soft overshoot, not a wobble
-        SpringAnimation { spring: 4; damping: 0.65; mass: 0.4 }
+        SpringAnimation { spring: 30; damping: 1.8; mass: 0.4 }
     }
 
     Behavior on color {
-        ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+        ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
     }
 
     Behavior on scale {
-        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 70; easing.type: Easing.OutCubic }
     }
 
     MouseArea {

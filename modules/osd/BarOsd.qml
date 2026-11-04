@@ -44,7 +44,7 @@ Item {
                 color: Theme.primary
 
                 Behavior on width {
-                    NumberAnimation { duration: 180; easing.type: Easing.OutQuint }
+                    NumberAnimation { duration: 45; easing.type: Easing.OutCubic }
                 }
             }
         }

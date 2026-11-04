@@ -149,7 +149,7 @@ Item {
             Behavior on contentX {
                 enabled: !strip.dragging && !strip.flicking
 
-                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 90; easing.type: Easing.OutQuint }
             }
 
             Text {
@@ -208,7 +208,7 @@ Item {
             border.color: Theme.primary
 
             Behavior on border.width {
-                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
             }
         }
 

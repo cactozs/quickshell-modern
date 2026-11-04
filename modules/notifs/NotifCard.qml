@@ -28,15 +28,24 @@ Rectangle {
     border.color: model.critical ? Theme.error : Theme.plateBorder
 
     implicitHeight: bodyCol.implicitHeight + 20
-    height: !shown || exiting ? 0 : implicitHeight
-    opacity: !shown || exiting ? 0 : 1
+    readonly property bool present: shown && !exiting
+    height: present ? implicitHeight : 0
+    opacity: present ? 1 : 0
 
+    // The card unfolds into its slot, then leaves faster than it arrived.
     Behavior on height {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: card.present ? 90 : 65
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: [0.32, 0.72, 0, 1]
+        }
     }
 
     Behavior on opacity {
-        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: card.present ? 55 : 35
+            easing.type: Easing.OutCubic
+        }
     }
 
     // Animate out, then either unpopup (toast click / expired toast — the
@@ -51,7 +60,7 @@ Rectangle {
     Timer {
         id: exitKick
 
-        interval: 240
+        interval: 95
         onTriggered: {
             if (card.compact)
                 card.model.popup = false;

@@ -207,7 +207,7 @@ Item {
                     font.pixelSize: 20
 
                     Behavior on color {
-                        ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -393,18 +393,21 @@ Item {
         border.width: item.selected ? 1 : 0
         border.color: Theme.primary
         // respond on press, not release
-        scale: pressArea.pressed ? 0.98 : 1
+        scale: pressArea.pressed ? 0.97 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
         }
 
         Behavior on border.width {
-            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
         }
 
         Behavior on scale {
-            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: pressArea.pressed ? 30 : 50
+                easing.type: Easing.OutCubic
+            }
         }
 
         AppIcon {
