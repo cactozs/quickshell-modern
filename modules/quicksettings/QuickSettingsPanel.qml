@@ -790,7 +790,11 @@ Item {
                     opacity: root.activeTabIndex >= 0 ? 1 : 0
 
                     Behavior on x {
-                        SpringAnimation { spring: 30; damping: 1.8; mass: 0.4 }
+                        NumberAnimation {
+                            duration: 180
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 1.2
+                        }
                     }
 
                     Behavior on opacity {

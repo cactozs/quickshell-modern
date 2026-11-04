@@ -24,8 +24,13 @@ Rectangle {
     scale: ma.containsMouse ? 1.25 : 1
 
     Behavior on height {
-        // one soft overshoot, not a wobble
-        SpringAnimation { spring: 30; damping: 1.8; mass: 0.4 }
+        // one soft overshoot, not a wobble; a spring diverges under rapid
+        // workspace churn, so this is a fixed curve with the same shape
+        NumberAnimation {
+            duration: 140
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.2
+        }
     }
 
     Behavior on color {
