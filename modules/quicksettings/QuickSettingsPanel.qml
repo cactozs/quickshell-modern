@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import Quickshell.Services.SystemTray
+import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
 import "../bar"
@@ -11,9 +13,9 @@ import "../../style"
 import "../../services"
 
 // Quick settings / control center content: two sliders and four chips on
-// top (the Wi-Fi chip opens the networks view instead of toggling), then an
-// eight-tab strip (calendar, timer, stopwatch, weather, media, notifications,
-// power, app colors) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
+// top (the Wi-Fi chip opens the networks view instead of toggling), then a
+// ten-tab strip (calendar, timer, stopwatch, weather, media, notifications,
+// power, system, tray, app colors) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
 // morphs into it, same contract as Launcher.qml. Open state lives in
 // QuickSettings; the bar's empty space (or `qs ipc call quicksettings
 // toggleOn <output>`) toggles it. Timer/stopwatch/weather state lives here
@@ -51,6 +53,8 @@ Item {
 
     onCurrentTabChanged: {
         QuickSettings.tab = currentTab;
+        if (currentTab !== 10)
+            trayTab.reset();
         if (currentTab === 7) {
             if (root.active)
                 root.wifiRefresh();
@@ -66,9 +70,10 @@ Item {
             root.wifiError = "";
     }
 
-    // Views: 0-6 are the strip tabs, 7 is the chip-opened networks view, 8 is
-    // these settings. The palette icon stores its tab number explicitly so the
-    // Wi-Fi view keeps 7 without appearing in the strip.
+    // Views: 0-6 and 9-10 are the strip tabs, 7 is the chip-opened networks
+    // view, 8 is the bar/app-color settings. The palette icon stores its tab
+    // number explicitly so the Wi-Fi view keeps 7 without appearing in the
+    // strip.
     readonly property var tabs: [
         { icon: "calendar_month", tab: 0 },
         { icon: "timer", tab: 1 },
@@ -77,6 +82,8 @@ Item {
         { icon: "music_note", tab: 4 },
         { icon: "notifications", tab: 5 },
         { icon: "power_settings_new", tab: 6 },
+        { icon: "monitoring", tab: 9 },
+        { icon: "inbox", tab: 10 },
         { icon: "palette", tab: 8 }
     ]
 
@@ -424,6 +431,7 @@ Item {
         } else {
             root.wifiPasswordFor = "";
             root.wifiError = "";
+            trayTab.reset();
         }
     }
 
@@ -889,6 +897,12 @@ Item {
 
             WifiTab {
                 visible: root.currentTab === 7
+            }
+
+            SystemTab {}
+
+            TrayTab {
+                id: trayTab
             }
         }
     }
@@ -2387,6 +2401,614 @@ Item {
             anchors.fill: parent
 
             onClicked: powerBtn.clicked()
+        }
+    }
+
+    // CPU/GPU load and temperature, RAM. /proc and sysfs are read through
+    // FileView.reload() so each tick costs no process spawn; the timer only
+    // runs while the panel shows this tab.
+    component SystemTab: Item {
+        id: sysTab
+
+        width: parent.width
+        height: sysCol.implicitHeight
+        visible: root.currentTab === 9
+
+        readonly property bool monitoring: root.active && sysTab.visible
+
+        property int cpuPct: 0
+        property string cpuTemp: "—"
+        property int gpuPct: 0
+        property string gpuTemp: "—"
+        property bool hasGpu: false
+        property int ramPct: 0
+        property real ramUsed: 0
+        property real ramTotal: 0
+        property real prevTotal: 0
+        property real prevIdle: 0
+        property bool statReady: false
+        property string cpuTempPath: ""
+        property string gpuBusyPath: ""
+        property string gpuTempPath: ""
+
+        function tempText(raw: string): string {
+            const t = parseInt(raw.trim());
+            return isNaN(t) ? "—" : Math.round(t / 1000) + "°C";
+        }
+
+        function refresh(): void {
+            statFile.reload();
+            memFile.reload();
+            if (sysTab.cpuTempPath !== "")
+                cpuTempFile.reload();
+            if (sysTab.gpuBusyPath !== "")
+                gpuBusyFile.reload();
+            if (sysTab.gpuTempPath !== "")
+                gpuTempFile.reload();
+        }
+
+        onMonitoringChanged: {
+            if (sysTab.monitoring)
+                sysTab.refresh();
+        }
+
+        Component.onCompleted: hwProbe.running = true
+
+        Timer {
+            interval: 1000
+            repeat: true
+            running: sysTab.monitoring
+
+            onTriggered: sysTab.refresh()
+        }
+
+        // First line of /proc/stat: cpu user nice system idle iowait irq
+        // softirq steal ... — usage is the non-idle share of the delta.
+        FileView {
+            id: statFile
+
+            path: "/proc/stat"
+            preload: false
+            blockAllReads: true
+            watchChanges: false
+            printErrors: false
+
+            onTextChanged: {
+                const parts = text().slice(0, text().indexOf("\n")).trim().split(/\s+/).map(Number);
+                if (parts.length < 6)
+                    return;
+                const idle = parts[4] + (parts[5] || 0);
+                const total = parts.slice(1, 9).reduce((a, b) => a + b, 0);
+                if (!sysTab.statReady) {
+                    sysTab.prevTotal = total;
+                    sysTab.prevIdle = idle;
+                    sysTab.statReady = true;
+                    return;
+                }
+                const dt = total - sysTab.prevTotal;
+                const di = idle - sysTab.prevIdle;
+                if (dt > 0)
+                    sysTab.cpuPct = Math.round(100 * (dt - di) / dt);
+                sysTab.prevTotal = total;
+                sysTab.prevIdle = idle;
+            }
+        }
+
+        FileView {
+            id: memFile
+
+            path: "/proc/meminfo"
+            preload: false
+            blockAllReads: true
+            watchChanges: false
+            printErrors: false
+
+            onTextChanged: {
+                const data = text();
+                const total = parseInt(data.slice(data.indexOf("MemTotal:") + 9));
+                const available = parseInt(data.slice(data.indexOf("MemAvailable:") + 13));
+                // A missing key parses to NaN; reject that too.
+                if (!(total > 0) || !(available >= 0))
+                    return;
+                sysTab.ramTotal = total / 1048576;
+                sysTab.ramUsed = (total - available) / 1048576;
+                sysTab.ramPct = Math.round(100 * sysTab.ramUsed / sysTab.ramTotal);
+            }
+        }
+
+        FileView {
+            id: cpuTempFile
+
+            path: sysTab.cpuTempPath
+            preload: false
+            blockAllReads: true
+            watchChanges: false
+            printErrors: false
+
+            onTextChanged: sysTab.cpuTemp = sysTab.tempText(text())
+        }
+
+        FileView {
+            id: gpuBusyFile
+
+            path: sysTab.gpuBusyPath
+            preload: false
+            blockAllReads: true
+            watchChanges: false
+            printErrors: false
+
+            onTextChanged: {
+                const v = parseInt(text().trim());
+                if (!isNaN(v))
+                    sysTab.gpuPct = v;
+            }
+        }
+
+        FileView {
+            id: gpuTempFile
+
+            path: sysTab.gpuTempPath
+            preload: false
+            blockAllReads: true
+            watchChanges: false
+            printErrors: false
+
+            onTextChanged: sysTab.gpuTemp = sysTab.tempText(text())
+        }
+
+        // The hwmon indices are not stable across boots, so resolve the CPU
+        // and amdgpu paths once. k10temp (AMD) and coretemp (Intel) expose
+        // the package temperature on temp1_input.
+        Process {
+            id: hwProbe
+
+            command: [
+                "sh", "-c",
+                "cpu=$(for h in /sys/class/hwmon/hwmon*; do " +
+                "case \"$(cat \"$h/name\" 2>/dev/null)\" in k10temp|coretemp|zenpower) " +
+                "echo \"$h/temp1_input\"; break;; esac; done); " +
+                "gpu=$(for f in /sys/class/drm/card*/device/gpu_busy_percent; do " +
+                "[ -r \"$f\" ] && { echo \"$f\"; break; }; done); " +
+                "gt=$(for h in /sys/class/hwmon/hwmon*; do " +
+                "[ \"$(cat \"$h/name\" 2>/dev/null)\" = amdgpu ] && " +
+                "{ echo \"$h/temp1_input\"; break; }; done); " +
+                "echo \"$cpu|$gpu|$gt\""
+            ]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const parts = text.trim().split("|");
+                    sysTab.cpuTempPath = parts[0] ?? "";
+                    sysTab.gpuBusyPath = parts[1] ?? "";
+                    sysTab.gpuTempPath = parts[2] ?? "";
+                    sysTab.hasGpu = sysTab.gpuBusyPath !== "";
+                    sysTab.refresh();
+                }
+            }
+        }
+
+        Column {
+            id: sysCol
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            spacing: 14
+
+            Meter {
+                label: "CPU"
+                value: sysTab.cpuPct + "% · " + sysTab.cpuTemp
+                percent: sysTab.cpuPct
+                fill: Theme.primary
+            }
+
+            Meter {
+                visible: sysTab.hasGpu
+                label: "GPU"
+                value: sysTab.gpuPct + "% · " + sysTab.gpuTemp
+                percent: sysTab.gpuPct
+                fill: Theme.tertiary
+            }
+
+            Meter {
+                label: "RAM"
+                value: sysTab.ramPct + "% · " + sysTab.ramUsed.toFixed(1)
+                    + " / " + sysTab.ramTotal.toFixed(1) + " GiB"
+                percent: sysTab.ramPct
+                fill: Theme.secondary
+            }
+        }
+    }
+
+    // StatusNotifierItems, as a list; an item with a D-Bus menu swaps the
+    // list for that menu, rendered in place (native menus cannot attach to
+    // a layer-shell surface). Submenus push deeper; back pops one level.
+    component TrayTab: Item {
+        id: trayView
+
+        width: parent.width
+        height: trayCol.implicitHeight
+        visible: root.currentTab === 10
+
+        readonly property var items: SystemTray.items.values
+        readonly property int maxListHeight: Math.round(
+            (Quickshell.screens.find(s => s.name === root.screenName)?.height ?? 900) * 0.45)
+        readonly property var activeMenu: trayView.menuStack.length > 0
+            ? trayView.menuStack[trayView.menuStack.length - 1] : null
+        readonly property var menuEntries: trayView.activeMenu !== null
+            ? menuOpener.children.values : []
+
+        property var activeItem: null
+        property var menuStack: []
+
+        function openItem(item: var): void {
+            trayView.activeItem = item;
+            trayView.menuStack = item !== null && item.hasMenu ? [item.menu] : [];
+        }
+
+        function pushMenu(entry: var): void {
+            trayView.menuStack = [...trayView.menuStack, entry];
+        }
+
+        function back(): void {
+            if (trayView.menuStack.length > 1)
+                trayView.menuStack = trayView.menuStack.slice(0, -1);
+            else
+                trayView.openItem(null);
+        }
+
+        function reset(): void {
+            trayView.openItem(null);
+        }
+
+        // An app can quit while its menu is open; drop the stale item.
+        onItemsChanged: {
+            if (trayView.activeItem !== null && !trayView.items.includes(trayView.activeItem))
+                trayView.openItem(null);
+        }
+
+        QsMenuOpener {
+            id: menuOpener
+
+            menu: trayView.activeMenu
+        }
+
+        Column {
+            id: trayCol
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+            }
+            spacing: 10
+
+            RowLayout {
+                width: parent.width
+                spacing: 6
+
+                Item {
+                    visible: trayView.activeItem !== null
+                    implicitWidth: 28
+                    implicitHeight: 28
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "arrow_back"
+                        color: Theme.primary
+                        font.family: Theme.iconFont
+                        font.pixelSize: 18
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onClicked: trayView.back()
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: trayView.activeItem !== null
+                        ? (trayView.activeItem.title !== "" ? trayView.activeItem.title : trayView.activeItem.id)
+                        : "Tray"
+                    color: Theme.primary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                    elide: Text.ElideRight
+                }
+            }
+
+            Flickable {
+                visible: trayView.activeItem === null
+                width: parent.width
+                height: Math.min(contentHeight, trayView.maxListHeight)
+                contentHeight: trayList.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                Column {
+                    id: trayList
+
+                    width: parent.width
+                    spacing: 2
+
+                    Text {
+                        visible: trayView.items.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "No tray apps"
+                        color: Theme.surfaceVariantText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    Repeater {
+                        model: trayView.items
+
+                        delegate: TrayRow {
+                            required property var modelData
+
+                            width: trayList.width
+                            item: modelData
+
+                            onClicked: {
+                                if (modelData.hasMenu) {
+                                    trayView.openItem(modelData);
+                                } else {
+                                    modelData.activate();
+                                    QuickSettings.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Flickable {
+                visible: trayView.activeItem !== null
+                width: parent.width
+                height: Math.min(contentHeight, trayView.maxListHeight)
+                contentHeight: menuList.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                Column {
+                    id: menuList
+
+                    width: parent.width
+                    spacing: 1
+
+                    Text {
+                        visible: trayView.menuEntries.length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "No menu"
+                        color: Theme.surfaceVariantText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    Repeater {
+                        model: trayView.menuEntries
+
+                        delegate: TrayMenuRow {
+                            required property var modelData
+
+                            width: menuList.width
+                            entry: modelData
+
+                            onClicked: {
+                                if (modelData.hasChildren) {
+                                    trayView.pushMenu(modelData);
+                                } else {
+                                    modelData.triggered();
+                                    trayView.reset();
+                                    QuickSettings.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // One metric row: label and value over a thin proportional bar.
+    component Meter: Column {
+        id: meter
+
+        required property string label
+        required property string value
+        required property int percent
+        property color fill: Theme.primary
+
+        width: parent ? parent.width : 0
+        spacing: 6
+
+        RowLayout {
+            width: parent.width
+            spacing: 8
+
+            Text {
+                text: meter.label
+                color: Theme.surfaceText
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Text {
+                text: meter.value
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 6
+            radius: 3
+            color: Qt.rgba(1, 1, 1, 0.14)
+
+            Rectangle {
+                width: parent.width * Math.max(0, Math.min(1, meter.percent / 100))
+                height: parent.height
+                radius: parent.radius
+                color: meter.fill
+
+                Behavior on width {
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
+            }
+        }
+    }
+
+    component TrayRow: Rectangle {
+        id: trayRow
+
+        required property var item
+        signal clicked()
+
+        width: parent ? parent.width : 0
+        height: 38
+        radius: Theme.radiusMD
+        color: trayArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
+
+        IconImage {
+            id: trayIcon
+
+            anchors.left: parent.left
+            anchors.leftMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            implicitSize: 20
+            source: trayRow.item.icon
+        }
+
+        Text {
+            anchors.left: trayIcon.right
+            anchors.leftMargin: 10
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            text: trayRow.item.title !== "" ? trayRow.item.title : trayRow.item.id
+            color: Theme.surfaceText
+            font.family: Theme.fontFamily
+            font.pixelSize: 13
+            elide: Text.ElideRight
+        }
+
+        MouseArea {
+            id: trayArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+
+            onClicked: trayRow.clicked()
+        }
+    }
+
+    // One D-Bus menu entry: separator, check mark, icon, text, submenu arrow.
+    component TrayMenuRow: Rectangle {
+        id: menuRow
+
+        required property var entry
+        signal clicked()
+
+        readonly property bool actionable: !menuRow.entry.isSeparator && menuRow.entry.enabled
+
+        width: parent ? parent.width : 0
+        height: menuRow.entry.isSeparator ? 9 : 34
+        radius: Theme.radiusMD
+        color: menuArea.containsMouse && menuRow.actionable ? Theme.surfaceContainerHigh : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
+
+        Rectangle {
+            visible: menuRow.entry.isSeparator
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+                leftMargin: 8
+                rightMargin: 8
+            }
+            height: 1
+            color: Theme.outline
+        }
+
+        Text {
+            anchors.left: parent.left
+            anchors.leftMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 16
+            visible: !menuRow.entry.isSeparator && menuRow.entry.checkState === Qt.Checked
+            text: "check"
+            color: Theme.primary
+            font.family: Theme.iconFont
+            font.pixelSize: 14
+        }
+
+        IconImage {
+            id: entryIcon
+
+            anchors.left: parent.left
+            anchors.leftMargin: 28
+            anchors.verticalCenter: parent.verticalCenter
+            implicitSize: 14
+            visible: !menuRow.entry.isSeparator && menuRow.entry.icon !== ""
+            source: menuRow.entry.icon
+        }
+
+        Text {
+            anchors.left: entryIcon.visible ? entryIcon.right : parent.left
+            anchors.leftMargin: entryIcon.visible ? 6 : 28
+            anchors.right: childIcon.left
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !menuRow.entry.isSeparator
+            text: menuRow.entry.text
+            color: Theme.surfaceText
+            opacity: menuRow.entry.enabled ? 1 : 0.5
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+            elide: Text.ElideRight
+        }
+
+        Text {
+            id: childIcon
+
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !menuRow.entry.isSeparator && menuRow.entry.hasChildren
+            text: "chevron_right"
+            color: Theme.surfaceVariantText
+            font.family: Theme.iconFont
+            font.pixelSize: 14
+        }
+
+        MouseArea {
+            id: menuArea
+
+            anchors.fill: parent
+            enabled: menuRow.actionable
+            hoverEnabled: true
+
+            onClicked: menuRow.clicked()
         }
     }
 }

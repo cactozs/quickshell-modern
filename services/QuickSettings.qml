@@ -52,7 +52,8 @@ Singleton {
     }
 
     // Open onto a specific tab (7 = the chip's wifi networks view, 8 = app
-    // colors); also the test hook for driving views without a pointer.
+    // colors, 9 = system monitor, 10 = tray); also the test hook for driving
+    // views without a pointer.
     function openTab(screenName: string, i: int): void {
         if (root.shown)
             root.shown = false; // toggle() would only close it

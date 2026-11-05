@@ -25,8 +25,12 @@ keeps the whole desktop in sync with the wallpaper.
   results ranked by launch frequency and persisted launch counts. Applications marked
   `Terminal=true` run through `$TERMINAL` (defaults to `alacritty`).
 - **Control center** — volume and brightness sliders, Mic / DND / Wi-Fi / Bluetooth chips,
-  and tabs for calendar, timer, stopwatch, weather, media, notifications, power and app
-  colors.
+  and tabs for calendar, timer, stopwatch, weather, media, notifications, power, system
+  monitor, tray and app colors.
+- **System monitor** — CPU and GPU load with temperatures plus RAM, read from `/proc` and
+  sysfs (k10temp/coretemp and amdgpu).
+- **Tray** — StatusNotifierItems with their D-Bus menus rendered inside the control center,
+  including submenus.
 - **Wi-Fi management** — scanned networks and saved profiles via `nmcli`, including
   connect, disconnect, forget and password entry.
 - **Notifications** — a notification server with popup toasts, DND, actions, critical
@@ -179,6 +183,8 @@ Quick settings tab indexes:
 | `6` | Power |
 | `7` | Wi-Fi networks |
 | `8` | Bar style / app colors |
+| `9` | System monitor |
+| `10` | Tray |
 
 Examples:
 
