@@ -753,8 +753,10 @@ Item {
                         label: "Wi-Fi"
                         checked: root.wifiOn
 
-                        // opens the networks view (tab 7) instead of toggling
-                        onToggled: root.currentTab = 7
+                        // opens the networks view (tab 7) instead of toggling;
+                        // write to the service — a currentTab write would break
+                        // its QuickSettings.tab binding and kill IPC navigation
+                        onToggled: QuickSettings.tab = 7
                     }
 
                     QsChip {
@@ -854,7 +856,7 @@ Item {
 
                                 anchors.fill: parent
 
-                                onClicked: root.currentTab = tabBtn.modelData.tab
+                                onClicked: QuickSettings.tab = tabBtn.modelData.tab
                             }
                         }
                     }

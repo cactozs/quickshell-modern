@@ -5,8 +5,8 @@ import QtQuick
 import QtQuick.Layouts
 import "../../style"
 
-// Center clock: large 24-hour time with a small muted date next to it, like
-// "21:14  Sun, Oct 25" on the reference screenshots.
+// Center clock: large 24-hour time, like "21:14" on the reference
+// screenshots.
 RowLayout {
     id: root
 

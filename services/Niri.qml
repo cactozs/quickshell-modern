@@ -40,8 +40,19 @@ Singleton {
     }
 
     // niri reads a bare index against the focused output, so clicking a chip
-    // on another monitor's bar must focus that monitor first.
-    function focusWorkspace(idx: number, output: string): void {
+    // on another monitor's bar must focus that monitor first — but only
+    // then: focus-monitor warps the pointer to the monitor's center even
+    // when it already has focus, which reads as the cursor teleporting on
+    // every same-monitor dot click.
+    // idx is `int`, not `number`: `number` is not a QML type, and an unknown
+    // param annotation makes the engine treat the whole function as
+    // unannotated — every void-context call then logs a coercion ERROR.
+    function focusWorkspace(idx: int, output: string): void {
+        const focused = root.workspaces.find(w => w.is_focused);
+        if (focused && focused.output === output) {
+            Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(idx)]);
+            return;
+        }
         Quickshell.execDetached(["sh", "-c",
             "niri msg action focus-monitor \"$0\" && niri msg action focus-workspace \"$1\"",
             output, String(idx)]);

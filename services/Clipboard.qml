@@ -67,6 +67,10 @@ Singleton {
     // The line goes in as an argv element (never through the shell string),
     // so any preview text is safe to pass.
     function activate(line: string): void {
+        // stop-then-start: running=true on a live process is a no-op, so a
+        // fast follow-up copy would be lost
+        if (copyProc.running)
+            copyProc.running = false;
         copyProc.command = ["sh", "-c",
             'printf %s\\n "$1" | cliphist decode | wl-copy', "sh", line];
         copyProc.running = true;
@@ -75,6 +79,8 @@ Singleton {
 
     // Delete a history entry (the X on the row / Ctrl+Z on the selection).
     function remove(line: string): void {
+        if (delProc.running)
+            delProc.running = false;
         delProc.command = ["sh", "-c",
             'printf %s\\n "$1" | cliphist delete', "sh", line];
         delProc.running = true;

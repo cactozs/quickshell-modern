@@ -110,7 +110,12 @@ Singleton {
                 })),
                 popup: !state.dnd || notif.urgency === NotificationUrgency.Critical
             });
-            root.list = [obj, ...root.list].slice(0, 50);
+            // Cap the history; objects pushed out are destroyed, not just
+            // dropped — they were parented to this singleton.
+            const next = [obj, ...root.list];
+            while (next.length > 50)
+                next.pop().destroy();
+            root.list = next;
         }
     }
 
