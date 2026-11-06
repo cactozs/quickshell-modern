@@ -101,9 +101,9 @@ PanelWindow {
         right: Theme.barSideMargin
     }
 
-    implicitHeight: root.launcherOpen ? launcher.height
-        : root.wallpaperOpen ? ribbon.height
-        : root.clipboardOpen ? clipPicker.height
+    implicitHeight: root.launcherOpen ? launcherLoader.height
+        : root.wallpaperOpen ? ribbonLoader.height
+        : root.clipboardOpen ? clipPickerLoader.height
         : root.qsOpen ? qsPanel.height : Theme.barHeight
 
     Behavior on implicitHeight {
@@ -270,19 +270,21 @@ PanelWindow {
         }
 
         // The launcher content, shown while the plate is morphed open. Its
-        // implicitHeight drives the plate height.
-        Launcher {
-            id: launcher
+        // implicitHeight drives the plate height. Unloaded while closed —
+        // every panel resets its own state when `active` flips on again.
+        Loader {
+            id: launcherLoader
 
             anchors {
                 top: parent.top
                 left: parent.left
                 right: parent.right
             }
-            // stay mapped through the closing fade; enabled cuts input at once
+            // unload after the closing fade; `visible || opacity` holds the
+            // item alive through it, enabled cuts input at once
+            active: root.launcherOpen || opacity > 0.001
             visible: root.launcherOpen || opacity > 0.001
             enabled: root.launcherOpen
-            active: root.launcherOpen
 
             // fade the launcher content in just after the plate starts
             // growing, so the morph reads as one motion; closing fades out
@@ -297,21 +299,26 @@ PanelWindow {
                     }
                 }
             }
+
+            sourceComponent: Component {
+                Launcher { active: root.launcherOpen }
+            }
         }
 
         // The wallpaper ribbon: same morph, horizontal filmstrip instead of
         // a list. No keyboard focus needed — wheel scrolls, clicks apply.
-        WallpaperRibbon {
-            id: ribbon
+        // Unloaded while closed, same contract as the launcher.
+        Loader {
+            id: ribbonLoader
 
             anchors {
                 top: parent.top
                 left: parent.left
                 right: parent.right
             }
+            active: root.wallpaperOpen || opacity > 0.001
             visible: root.wallpaperOpen || opacity > 0.001
             enabled: root.wallpaperOpen
-            active: root.wallpaperOpen
 
             opacity: root.wallpaperOpen ? 1 : 0
             Behavior on opacity {
@@ -323,20 +330,25 @@ PanelWindow {
                     }
                 }
             }
+
+            sourceComponent: Component {
+                WallpaperRibbon { active: root.wallpaperOpen }
+            }
         }
 
         // The clipboard picker: same morph, vertical history list.
-        ClipboardPanel {
-            id: clipPicker
+        // Unloaded while closed, same contract as the launcher.
+        Loader {
+            id: clipPickerLoader
 
             anchors {
                 top: parent.top
                 left: parent.left
                 right: parent.right
             }
+            active: root.clipboardOpen || opacity > 0.001
             visible: root.clipboardOpen || opacity > 0.001
             enabled: root.clipboardOpen
-            active: root.clipboardOpen
 
             opacity: root.clipboardOpen ? 1 : 0
             Behavior on opacity {
@@ -347,6 +359,10 @@ PanelWindow {
                         easing.type: Easing.OutCubic
                     }
                 }
+            }
+
+            sourceComponent: Component {
+                ClipboardPanel { active: root.clipboardOpen }
             }
         }
 

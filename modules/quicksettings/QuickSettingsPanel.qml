@@ -1799,6 +1799,8 @@ Item {
 
                     NotifColumn {
                         model: Notifs.list
+                        // drop the card pool while this panel is closed
+                        deferSync: !root.active
                         width: parent.width
                         spacing: 8
                     }

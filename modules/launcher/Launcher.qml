@@ -367,6 +367,9 @@ Item {
 
             anchors.fill: parent
             anchors.margins: 2
+            // decode at the rendered size — theme icons default to their
+            // natural size (up to 512 px, ~1 MB each)
+            implicitSize: Math.round(iconBox.size - 4)
             // `true` makes a missing themed icon return "", so the
             // initial-letter fallback can appear instead of a placeholder.
             source: {

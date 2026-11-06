@@ -17,6 +17,11 @@ Column {
     property var model: []
     property bool compact: false
 
+    // While deferred, pooled cards are torn down and not rebuilt. The notif
+    // center sets this from the panel's active state so a full history
+    // doesn't sit in RAM while the panel is closed.
+    property bool deferSync: false
+
     // Notif object -> NotifCard
     property var pool: new Map()
 
@@ -32,8 +37,24 @@ Column {
 
     onModelChanged: sync()
     Component.onCompleted: sync()
+    onDeferSyncChanged: {
+        if (root.deferSync)
+            releaseAll();
+        else
+            sync();
+    }
+
+    function releaseAll(): void {
+        for (const [, card] of pool)
+            card.destroy();
+        pool.clear();
+        // next open settles the whole list in place, like a fresh start
+        root.primed = false;
+    }
 
     function sync(): void {
+        if (root.deferSync)
+            return;
         for (let i = 0; i < model.length; i++) {
             const n = model[i];
             if (!pool.has(n)) {
