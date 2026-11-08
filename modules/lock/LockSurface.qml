@@ -194,9 +194,9 @@ Item {
                     id: fieldBack
 
                     anchors.left: parent.left
-                    anchors.leftMargin: 10
+                    anchors.leftMargin: 8
                     anchors.right: parent.right
-                    anchors.rightMargin: 14
+                    anchors.rightMargin: 8
                     anchors.top: parent.top
                     anchors.topMargin: 8
                     anchors.bottom: parent.bottom
