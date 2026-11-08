@@ -1,4 +1,5 @@
 import "modules/bar"
+import "modules/lock"
 import "modules/notifs"
 import "modules/wallpaper"
 import "services"
@@ -25,4 +26,5 @@ ShellRoot {
 
     NotifToasts {}
     PanelScrim {}
+    LockScreen {}
 }
