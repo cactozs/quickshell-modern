@@ -177,8 +177,8 @@ Item {
                 id: pill
 
                 Layout.alignment: Qt.AlignHCenter
-                width: Math.min(root.width - 48, 360)
-                height: 48
+                Layout.preferredWidth: Math.min(root.width - 48, 360)
+                Layout.preferredHeight: 48
                 radius: height / 2
                 color: Theme.plate
                 border.width: 1
@@ -188,8 +188,8 @@ Item {
                     ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
                 }
 
-                // Inner backing: icon + text form one horizontally centered
-                // group — the icon slides to stay just left of the text.
+                // Inner backing: the lock icon is a fixed prefix and the
+                // echoed dots grow to its right.
                 Rectangle {
                     id: fieldBack
 
@@ -204,14 +204,11 @@ Item {
                     radius: height / 2
                     color: Theme.surfaceContainerHighest
 
-                    // Placeholder width while empty, echo-dot width once typing.
-                    readonly property real textW: password.text.length === 0
-                        ? placeholderText.implicitWidth : password.contentWidth
-
                     Text {
                         id: lockIcon
 
-                        x: Math.max(12, (parent.width - parent.textW) / 2 - width - 8)
+                        anchors.left: parent.left
+                        anchors.leftMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         text: "lock"
                         color: password.activeFocus ? Theme.primary : Theme.surfaceVariantText
@@ -226,7 +223,9 @@ Item {
                     Text {
                         id: placeholderText
 
-                        anchors.centerIn: parent
+                        anchors.left: lockIcon.right
+                        anchors.leftMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
                         visible: password.text.length === 0
                         text: "Enter password"
                         color: Theme.surfaceVariantText
@@ -237,11 +236,13 @@ Item {
                     TextInput {
                         id: password
 
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
+                        anchors.left: lockIcon.right
+                        anchors.leftMargin: 8
+                        anchors.right: parent.right
+                        anchors.rightMargin: 16
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
                         verticalAlignment: TextInput.AlignVCenter
-                        horizontalAlignment: TextInput.AlignHCenter
                         clip: true
                         echoMode: TextInput.Password
                         color: Theme.surfaceText
