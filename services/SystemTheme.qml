@@ -385,29 +385,7 @@ Singleton {
             "        inactive-gradient from=\"" + rgba(root.niriInactiveFrom) + "\" to=\""
                 + rgba(root.niriInactiveTo) + "\" angle=150",
             "    }",
-            "}",
-            "",
-            "layer-rule {",
-            "    match namespace=\"^quickshell:\"",
-            "",
-            "    background-effect {",
-            "        xray false",
-            "    }",
-            "}",
-            "",
-            "blur {",
-            "    passes 1",
-            "}",
-            "",
-            "window-rule {",
-            "    geometry-corner-radius 8",
-            "    clip-to-geometry true",
-            "}",
-            "",
-            "animations {",
-            "    slowdown 1.0",
-            "}",
-            ""
+            "}"
         ].join("\n");
     }
 
