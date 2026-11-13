@@ -22,8 +22,26 @@ Item {
     // The embedding bar sizes its plate height from this.
     implicitHeight: thumbH + 24
 
+    property bool keyNav: false
+
+    function syncSelection(): void {
+        const i = Wallpaper.list.indexOf(Wallpaper.current);
+        strip.currentIndex = i >= 0 ? i : (strip.count > 0 ? 0 : -1);
+        if (strip.currentIndex >= 0)
+            strip.positionViewAtIndex(strip.currentIndex, ListView.Contain);
+    }
+
+    function moveSelection(delta: int): void {
+        if (strip.count === 0)
+            return;
+        root.keyNav = true;
+        strip.currentIndex = Math.max(0, Math.min(strip.count - 1, strip.currentIndex + delta));
+        strip.positionViewAtIndex(strip.currentIndex, ListView.Contain);
+    }
+
     onActiveChanged: {
         if (root.active) {
+            root.keyNav = false;
             scrollKick.restart();
             focusKick.restart();
         }
@@ -31,6 +49,22 @@ Item {
 
     // Esc closes, like the launcher.
     Keys.onEscapePressed: Wallpaper.close()
+    Keys.onLeftPressed: root.moveSelection(-1)
+    Keys.onRightPressed: root.moveSelection(1)
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_H) {
+            root.moveSelection(-1);
+            event.accepted = true;
+        } else if (event.key === Qt.Key_L) {
+            root.moveSelection(1);
+            event.accepted = true;
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (strip.currentIndex >= 0 && strip.currentIndex < Wallpaper.list.length) {
+                Wallpaper.set(Wallpaper.list[strip.currentIndex]);
+                event.accepted = true;
+            }
+        }
+    }
 
     // Layer surfaces take a moment to gain keyboard focus; make sure Esc
     // works either way.
@@ -48,11 +82,7 @@ Item {
         id: scrollKick
 
         interval: 150
-        onTriggered: {
-            const i = Wallpaper.list.indexOf(Wallpaper.current);
-            if (i >= 0)
-                strip.positionViewAtIndex(i, ListView.Contain);
-        }
+        onTriggered: root.syncSelection()
     }
 
     // Software rendering can't curve-clip (ClippingRectangle is a shader), so
@@ -141,6 +171,9 @@ Item {
             orientation: ListView.Horizontal
             spacing: 10
             model: Wallpaper.list
+            currentIndex: -1
+            highlightFollowsCurrentItem: true
+            highlightMoveDuration: 90
 
             delegate: Thumb {}
 
@@ -155,7 +188,10 @@ Item {
             Text {
                 anchors.centerIn: parent
                 visible: strip.count === 0
-                text: "No wallpapers found"
+                text: Wallpaper.scanning
+                    ? "Scanning wallpapers…"
+                    : "No wallpapers in " + Wallpaper.dir + "\nDrop an image on the desktop to add one"
+                horizontalAlignment: Text.AlignHCenter
                 color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
@@ -184,7 +220,9 @@ Item {
         id: tile
 
         required property string modelData
+        required property int index
         readonly property bool current: Wallpaper.current === tile.modelData
+        readonly property bool selected: root.keyNav && strip.currentIndex === index
 
         width: root.thumbW
         height: root.thumbH
@@ -210,8 +248,8 @@ Item {
             anchors.fill: parent
             radius: tile.radius
             color: tileArea.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
-            border.width: tile.current ? 2 : 0
-            border.color: Theme.primary
+            border.width: tile.selected ? 3 : (tile.current ? 2 : 0)
+            border.color: tile.selected ? Theme.tertiary : Theme.primary
 
             Behavior on border.width {
                 NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
@@ -228,6 +266,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onEntered: root.keyNav = false
             onClicked: Wallpaper.set(tile.modelData)
         }
     }

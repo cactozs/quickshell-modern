@@ -37,8 +37,8 @@ keeps the whole desktop in sync with the wallpaper.
   notifications and a scrollable history in the control center.
 - **Clipboard history** — browse, re-copy and delete `cliphist` entries with the keyboard
   or mouse.
-- **Wallpapers** — a thumbnail ribbon of `~/Pictures/Wallpapers`, plus desktop drag-and-drop
-  for new images.
+- **Wallpapers** — a thumbnail ribbon of your wallpaper directory (`~/Pictures/Wallpapers` by
+  default, override with `QS_WALLPAPERS_DIR`), plus desktop drag-and-drop for new images.
 - **OSD** — volume, brightness, microphone, Caps Lock and keyboard-layout changes replace
   the bar content for a moment.
 - **Live theming** — matugen's Material palette is applied to GTK, Qt, niri, terminals,
@@ -312,15 +312,13 @@ the black plates stay black by design.
 
 ## Wallpapers
 
-The picker scans `~/Pictures/Wallpapers` recursively for `jpg`, `jpeg`, `png` and `webp`
-files. Click a thumbnail to apply it and close the ribbon; the current wallpaper is outlined
-in the accent color.
+The picker scans the wallpaper directory recursively for `jpg`, `jpeg`, `png` and `webp`
+files (`~/Pictures/Wallpapers` by default; set `QS_WALLPAPERS_DIR` to override). The directory
+is created automatically if missing. Click a thumbnail to apply it and close the ribbon; the
+current wallpaper is outlined in the accent color.
 
-Dropping an image file on empty desktop copies it into `~/Pictures/Wallpapers` and applies
-it immediately. Non-file URLs and unsupported extensions are ignored.
-
-The wallpaper directory is currently fixed in `services/Wallpaper.qml`; change
-the `fd` path there if your collection lives elsewhere.
+Dropping an image file on empty desktop copies it into the wallpaper directory and applies it
+immediately. Non-file URLs and unsupported extensions are ignored.
 
 ## Project structure
 
@@ -358,7 +356,8 @@ still land.
   restart.
 - **Weather needs network access.** Data comes from `api.open-meteo.com`; the location is
   detected by IP through `ipwho.is`. No API key is required.
-- **Wallpaper directory is fixed** to `~/Pictures/Wallpapers`.
+- **Idle lock timeouts** default to 300s (lock) / 450s (power off monitors); override with
+  `QS_LOCK_TIMEOUT` / `QS_MONITOR_OFF_TIMEOUT` (seconds).
 - **App theme files are overwritten.** Disable a target in App colors if you maintain that
   file by hand.
 - Tested with Quickshell 0.3.2 and niri 26.04 on Arch Linux. Other versions may work but are

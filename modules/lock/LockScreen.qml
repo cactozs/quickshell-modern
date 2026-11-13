@@ -37,7 +37,7 @@ QtObject {
     }
 
     property IdleMonitor idleLock: IdleMonitor {
-        timeout: 300
+        timeout: Number(Quickshell.env("QS_LOCK_TIMEOUT")) || 300
 
         onIsIdleChanged: {
             if (isIdle)
@@ -46,7 +46,7 @@ QtObject {
     }
 
     property IdleMonitor idleMonitors: IdleMonitor {
-        timeout: 450
+        timeout: Number(Quickshell.env("QS_MONITOR_OFF_TIMEOUT")) || 450
 
         onIsIdleChanged: {
             if (isIdle)

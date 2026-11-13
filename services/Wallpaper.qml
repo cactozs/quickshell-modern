@@ -6,15 +6,19 @@ import Quickshell.Io
 import QtQuick
 import "../style"
 
-// Wallpaper picker state. The list is a recursive scan of ~/Pictures/Wallpapers;
+// Wallpaper picker state. `dir` is scanned recursively for images;
 // `current` comes from `awww query` at startup and is tracked as the user picks.
-// Applying = `awww img <file>`, whose shim also reruns matugen, so Theme.qml
-// recolors the whole shell live. Open state mirrors Notifs/LauncherState.
+// Applying = `awww img <file>`, whose shim may also rerun matugen. Open state
+// mirrors Notifs/LauncherState.
 Singleton {
     id: root
 
+    readonly property string dir: Quickshell.env("QS_WALLPAPERS_DIR")
+        || (Quickshell.env("HOME") + "/Pictures/Wallpapers")
+
     property list<string> list: []
     property string current: ""
+    property bool scanning: false
 
     property bool shown: false
     property string screen: ""
@@ -43,6 +47,7 @@ Singleton {
         else if (root.screen === "")
             root.screen = Quickshell.screens[0]?.name ?? "";
         root.shown = true;
+        root.refresh();
     }
 
     function close(): void {
@@ -50,22 +55,24 @@ Singleton {
     }
 
     function set(path: string): void {
+        if (path === "")
+            return;
         root.current = path;
-        Quickshell.execDetached(["awww", "img", path]);
+        setProc.command = ["awww", "img", path];
+        setProc.running = true;
         root.close(); // the pick is done — fold the ribbon away
     }
 
     function refresh(): void {
-        if (scan.running)
-            scan.running = false;
-        scan.running = true;
+        if (ensureDir.running)
+            return;
+        root.scanning = true;
+        ensureDir.running = true;
     }
 
     // Desktop drag-and-drop entry: a file:// url (DropArea.urls[0]) is copied
-    // into ~/Pictures/Wallpapers and applied. shortcut: same-name drops
-    // overwrite the stored copy — the source file stays where it was dragged
-    // from. Non-file urls and non-image extensions are ignored, so a stray
-    // PDF can't land in the collection.
+    // into `dir` and applied. shortcut: same-name drops overwrite the stored
+    // copy — the source file stays where it was dragged from.
     function install(url: string): void {
         const urlStr = url.toString();
         if (!urlStr.startsWith("file://"))
@@ -74,16 +81,39 @@ Singleton {
         const name = src.slice(src.lastIndexOf("/") + 1).toLowerCase();
         if (!["jpg", "jpeg", "png", "webp"].includes(name.slice(name.lastIndexOf(".") + 1)))
             return;
-        const dest = Quickshell.env("HOME") + "/Pictures/Wallpapers/" + src.slice(src.lastIndexOf("/") + 1);
-        // dropping a file that's already in the collection: cp would fail
-        // copying onto itself — just re-apply it
-        if (src === dest) {
-            root.set(dest);
-            return;
+        ensureDir.destAfter = "";
+        ensureDir.installSrc = src;
+        ensureDir.installName = src.slice(src.lastIndexOf("/") + 1);
+        ensureDir.running = true;
+    }
+
+    Process {
+        id: ensureDir
+
+        property string installSrc: ""
+        property string installName: ""
+        property string destAfter: ""
+
+        command: ["mkdir", "-p", root.dir]
+
+        onExited: (exitCode, exitStatus) => {
+            if (installSrc !== "") {
+                const dest = root.dir + "/" + installName;
+                if (installSrc === dest) {
+                    installSrc = "";
+                    installName = "";
+                    root.set(dest);
+                    return;
+                }
+                cp.dest = dest;
+                cp.command = ["cp", installSrc, dest];
+                installSrc = "";
+                installName = "";
+                cp.running = true;
+                return;
+            }
+            scan.running = true;
         }
-        cp.dest = dest;
-        cp.command = ["cp", src, dest];
-        cp.running = true;
     }
 
     Process {
@@ -92,10 +122,9 @@ Singleton {
         property string dest: ""
 
         onExited: (exitCode, exitStatus) => {
-            // a failed cp (source vanished mid-drag) applies nothing
             if (exitCode === 0 && cp.dest !== "") {
-                root.refresh();
                 root.set(cp.dest);
+                root.refresh();
             }
             cp.dest = "";
         }
@@ -107,13 +136,20 @@ Singleton {
 
         command: ["fd", "-H", "-I", "-t", "f",
                   "-e", "jpg", "-e", "jpeg", "-e", "png", "-e", "webp",
-                  ".", Quickshell.env("HOME") + "/Pictures/Wallpapers"]
+                  ".", root.dir]
 
         stdout: StdioCollector {
             onStreamFinished: {
                 root.list = text.trim().split("\n").filter(l => l !== "").sort();
                 root.current = "";
                 query.running = true;
+            }
+        }
+
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0 && !query.running) {
+                root.list = [];
+                root.scanning = false;
             }
         }
     }
@@ -131,6 +167,19 @@ Singleton {
                 if (line)
                     root.current = line.slice(line.lastIndexOf("image: ") + 7).trim();
             }
+        }
+
+        onExited: (exitCode, exitStatus) => {
+            root.scanning = false;
+        }
+    }
+
+    Process {
+        id: setProc
+
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                root.refresh();
         }
     }
 

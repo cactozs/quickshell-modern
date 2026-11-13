@@ -6,7 +6,7 @@ import QtQuick
 import "../../services"
 
 // Invisible fullscreen catcher: dropping an image file on empty desktop
-// installs it into ~/Pictures/Wallpapers and applies it (Wallpaper.install).
+// installs it into the wallpaper directory and applies it (Wallpaper.install).
 // Sits on the Bottom layer so every window stays above it — drops over real
 // windows go to that window, only empty-desktop drops land here.
 PanelWindow {
