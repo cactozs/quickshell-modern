@@ -20,7 +20,7 @@ Item {
     readonly property int thumbH: 108
 
     // The embedding bar sizes its plate height from this.
-    implicitHeight: thumbH + 24
+    implicitHeight: thumbH + (Wallpaper.error !== "" && strip.count > 0 ? 46 : 24)
 
     property bool keyNav: false
 
@@ -149,6 +149,24 @@ Item {
     // Viewport for the strip: cut-off tiles end at the plate's side margins.
     // Plain Rectangle, not Quickshell's ClippingRectangle: that one is a
     // ShaderEffect and the shell runs on the software backend.
+    Text {
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            topMargin: 8
+            leftMargin: 12
+            rightMargin: 12
+        }
+        visible: Wallpaper.error !== "" && strip.count > 0
+        text: Wallpaper.error
+        color: Theme.error
+        font.family: Theme.fontFamily
+        font.pixelSize: 11
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+    }
+
     Rectangle {
         id: stripClip
 
@@ -156,7 +174,9 @@ Item {
             top: parent.top
             left: parent.left
             right: parent.right
-            margins: 12
+            leftMargin: 12
+            rightMargin: 12
+            topMargin: Wallpaper.error !== "" && strip.count > 0 ? 30 : 12
         }
         height: root.thumbH
         color: "transparent"
@@ -188,13 +208,15 @@ Item {
             Text {
                 anchors.centerIn: parent
                 visible: strip.count === 0
-                text: Wallpaper.scanning
-                    ? "Scanning wallpapers…"
+                text: Wallpaper.error !== "" ? Wallpaper.error
+                    : Wallpaper.scanning ? "Scanning wallpapers…"
                     : "No wallpapers in " + Wallpaper.dir + "\nDrop an image on the desktop to add one"
                 horizontalAlignment: Text.AlignHCenter
-                color: Theme.surfaceVariantText
+                color: Wallpaper.error !== "" ? Theme.error : Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 13
+                wrapMode: Text.Wrap
+                width: parent.width - 24
             }
         }
 

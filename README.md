@@ -74,7 +74,10 @@ keeps the whole desktop in sync with the wallpaper.
 - **curl** — weather data from `api.open-meteo.com` (location via `ipwho.is`).
 - **fd** — recursive scan of the wallpaper directory.
 - **Google Sans** and **Material Symbols Rounded** — the default UI fonts.
-- Optional: **jq** for focused-output keybinds, **bat** for the bat color target.
+- Optional: **jq** for focused-output keybinds, **bat** for the bat color target,
+  **libnotify** for timer completion notifications, **dbus** plus **systemd-inhibit** for
+  lock-screen sleep handling, and **glib2** for setting the GTK color scheme.
+  **coreutils** provides `stdbuf` for the audio and network event monitors.
 
 On Arch Linux, the core packages are:
 
@@ -114,6 +117,17 @@ spawn-at-startup "env" "QT_QUICK_BACKEND=software" "quickshell"
 
 `QT_QUICK_BACKEND=software` keeps the shell on Qt's software renderer and avoids loading the
 GPU stack just for the bar. Remove it if you prefer hardware rendering.
+
+### First launch
+
+1. Run `./scripts/check-environment` from this checkout. Missing tools are listed beside
+   the features that use them; the shell can still run with optional integrations missing.
+2. Start `qs` from a terminal. Fix any QML or runtime errors printed there before adding it
+   to niri startup.
+3. Add the startup commands above, then use `Mod+A` for the launcher, `Mod+V` for clipboard,
+   `Mod+N` for notifications and `Mod+S` for quick settings.
+4. Run `./scripts/check-project` before sharing changes. It checks every QML file with
+   `qmllint` and validates the project scripts.
 
 ## Keybinds
 

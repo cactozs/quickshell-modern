@@ -19,6 +19,7 @@ Singleton {
     property list<string> list: []
     property string current: ""
     property bool scanning: false
+    property string error: ""
 
     property bool shown: false
     property string screen: ""
@@ -57,6 +58,7 @@ Singleton {
     function set(path: string): void {
         if (path === "")
             return;
+        root.error = "";
         root.current = path;
         setProc.command = ["awww", "img", path];
         setProc.running = true;
@@ -67,6 +69,7 @@ Singleton {
         if (ensureDir.running)
             return;
         root.scanning = true;
+        scanTimeout.restart();
         ensureDir.running = true;
     }
 
@@ -97,6 +100,13 @@ Singleton {
         command: ["mkdir", "-p", root.dir]
 
         onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0) {
+                root.error = "Could not create wallpaper folder";
+                installSrc = "";
+                installName = "";
+                root.scanning = false;
+                return;
+            }
             if (installSrc !== "") {
                 const dest = root.dir + "/" + installName;
                 if (installSrc === dest) {
@@ -125,7 +135,8 @@ Singleton {
             if (exitCode === 0 && cp.dest !== "") {
                 root.set(cp.dest);
                 root.refresh();
-            }
+            } else if (cp.dest !== "")
+                root.error = "Could not copy image into wallpaper folder";
             cp.dest = "";
         }
     }
@@ -142,6 +153,8 @@ Singleton {
             onStreamFinished: {
                 root.list = text.trim().split("\n").filter(l => l !== "").sort();
                 root.current = "";
+                if (root.error.startsWith("Wallpaper scan failed"))
+                    root.error = "";
                 query.running = true;
             }
         }
@@ -150,6 +163,7 @@ Singleton {
             if (exitCode !== 0 && !query.running) {
                 root.list = [];
                 root.scanning = false;
+                root.error = "Wallpaper scan failed — install fd or check the folder";
             }
         }
     }
@@ -171,16 +185,42 @@ Singleton {
 
         onExited: (exitCode, exitStatus) => {
             root.scanning = false;
+            scanTimeout.stop();
+            if (exitCode !== 0)
+                root.error = "awww is unavailable — start awww-daemon";
+        }
+    }
+
+    // Bound loading when a missing command prevents Process.onExited from firing.
+    Timer {
+        id: scanTimeout
+
+        interval: 10000
+        onTriggered: {
+            if (!root.scanning)
+                return;
+            root.scanning = false;
+            root.error = "Wallpaper tools did not respond — check fd and awww";
         }
     }
 
     Process {
         id: setProc
 
+        onRunningChanged: if (running) applyTimeout.restart()
+
         onExited: (exitCode, exitStatus) => {
+            applyTimeout.stop();
             if (exitCode !== 0)
-                root.refresh();
+                root.error = "Could not apply wallpaper — check that awww is running";
         }
+    }
+
+    Timer {
+        id: applyTimeout
+
+        interval: 10000
+        onTriggered: root.error = "Wallpaper command did not respond — check that awww is running"
     }
 
     IpcHandler {

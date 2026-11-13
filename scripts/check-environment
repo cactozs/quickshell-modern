@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -u
+
+missing=0
+
+check() {
+    local command=$1 feature=$2 install=$3
+    if command -v "$command" >/dev/null 2>&1; then
+        printf '  ✓ %-16s %s\n' "$command" "$feature"
+    else
+        printf '  ✗ %-16s %s — install: %s\n' "$command" "$feature" "$install"
+        missing=$((missing + 1))
+    fi
+}
+
+printf 'Quickshell environment\n\nRequired for the shell:\n'
+check qs 'Quickshell runtime' 'quickshell'
+check niri 'workspace and session integration' 'niri'
+
+printf '\nFeatures and optional integrations:\n'
+check matugen 'wallpaper-based live colors' 'matugen'
+check awww 'wallpaper picker and desktop drop' 'awww'
+check fd 'wallpaper collection scan' 'fd'
+check cliphist 'clipboard history' 'cliphist'
+check wl-copy 'copying clipboard entries' 'wl-clipboard'
+check brightnessctl 'backlight slider' 'brightnessctl'
+check nmcli 'Wi-Fi controls' 'networkmanager'
+check bluetoothctl 'Bluetooth controls' 'bluez-utils'
+check pactl 'audio change notifications' 'libpulse'
+check wpctl 'audio controls' 'wireplumber'
+check curl 'weather tab' 'curl'
+check notify-send 'timer completion notification' 'libnotify'
+check dbus-monitor 'lock screen sleep handling' 'dbus'
+check systemctl 'power actions' 'systemd'
+check systemd-inhibit 'lock screen sleep handling' 'systemd'
+check stdbuf 'audio/network event monitoring' 'coreutils'
+check gsettings 'GTK color scheme selection' 'glib2'
+check fc-match 'font availability check' 'fontconfig'
+
+if command -v fc-match >/dev/null 2>&1; then
+    for font in 'Google Sans' 'Material Symbols Rounded'; do
+        if ! fc-match "$font" | grep -Fq "$font"; then
+            printf '  ! %-16s not found; install the font or change style/Theme.qml\n' "$font"
+            missing=$((missing + 1))
+        fi
+    done
+fi
+
+printf '\n%s missing command(s) or fonts. The shell can still start; affected features may be unavailable.\n' "$missing"

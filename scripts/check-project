@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+qmllint_bin=""
+if [[ -x /usr/lib/qt6/bin/qmllint ]]; then
+    qmllint_bin=/usr/lib/qt6/bin/qmllint
+elif command -v qmllint6 >/dev/null 2>&1; then
+    qmllint_bin=$(command -v qmllint6)
+elif command -v qmllint >/dev/null 2>&1 && ldd "$(command -v qmllint)" 2>/dev/null | grep -q 'libQt6Core'; then
+    qmllint_bin=$(command -v qmllint)
+else
+    printf 'Qt 6 qmllint is required (install Qt 6 declarative tools).\n' >&2
+    exit 1
+fi
+
+mapfile -d '' qml_files < <(find . -type f -name '*.qml' -print0)
+lint_log=$(mktemp)
+trap 'rm -f "$lint_log"' EXIT
+for file in "${qml_files[@]}"; do
+    if ! "$qmllint_bin" "$file" >"$lint_log" 2>&1; then
+        cat "$lint_log" >&2
+        exit 1
+    fi
+done
+bash -n scripts/check-environment scripts/check-project
+for entry in './scripts/check-environment' './scripts/check-project'; do
+    if ! grep -Fq "$entry" README.md; then
+        printf 'README.md does not document %s.\n' "$entry" >&2
+        exit 1
+    fi
+done
+printf 'QML syntax and shell scripts look good (%s QML files).\n' "${#qml_files[@]}"

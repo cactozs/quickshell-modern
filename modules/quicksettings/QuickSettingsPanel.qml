@@ -36,6 +36,18 @@ Item {
 
     // Esc closes, like the launcher.
     Keys.onEscapePressed: QuickSettings.close()
+    Keys.onPressed: event => {
+        if (!(event.modifiers & Qt.ControlModifier))
+            return;
+        const direction = event.key === Qt.Key_PageDown ? 1
+            : event.key === Qt.Key_PageUp ? -1 : 0;
+        if (direction === 0)
+            return;
+        const visibleTabs = root.tabs.map(t => t.tab);
+        const index = visibleTabs.indexOf(root.currentTab);
+        root.currentTab = visibleTabs[(index + direction + visibleTabs.length) % visibleTabs.length];
+        event.accepted = true;
+    }
 
     // Layer surfaces take a moment to gain keyboard focus; make sure Esc
     // works either way.
@@ -231,6 +243,7 @@ Item {
             return;
         root.weatherLoading = true;
         root.weatherFailed = false;
+        weatherTimeout.restart();
         if (root.weatherCoords !== null)
             root.startWeatherFetch();
         else
@@ -244,6 +257,7 @@ Item {
             + "&longitude=" + c.lon
             + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m"
             + "&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=2"];
+        weatherTimeout.restart();
         weatherProc.running = true;
     }
 
@@ -254,11 +268,13 @@ Item {
         } catch (e) {
             root.weatherLoading = false;
             root.weatherFailed = true;
+            weatherTimeout.stop();
             return;
         }
         if (!data?.success || data.latitude === undefined || data.longitude === undefined) {
             root.weatherLoading = false;
             root.weatherFailed = true;
+            weatherTimeout.stop();
             return;
         }
         root.weatherCoords = { lat: data.latitude, lon: data.longitude };
@@ -267,6 +283,7 @@ Item {
 
     function applyWeather(text: string): void {
         root.weatherLoading = false;
+        weatherTimeout.stop();
         let data;
         try {
             data = JSON.parse(text);
@@ -535,6 +552,7 @@ Item {
             if (exitCode !== 0) {
                 root.weatherLoading = false;
                 root.weatherFailed = true;
+                weatherTimeout.stop();
             }
         }
     }
@@ -550,7 +568,20 @@ Item {
             if (exitCode !== 0) {
                 root.weatherLoading = false;
                 root.weatherFailed = true;
+                weatherTimeout.stop();
             }
+        }
+    }
+
+    Timer {
+        id: weatherTimeout
+
+        interval: 10000
+        onTriggered: {
+            root.weatherLoading = false;
+            root.weatherFailed = true;
+            geoProc.running = false;
+            weatherProc.running = false;
         }
     }
 
@@ -861,6 +892,15 @@ Item {
                         }
                     }
                 }
+            }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: "Ctrl + Page Up / Page Down to switch tabs"
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 10
             }
 
             // ---- tabs ----
