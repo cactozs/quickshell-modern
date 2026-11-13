@@ -280,6 +280,7 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
+            y: root.launcherOpen ? 0 : -6
             // unload after the closing fade; `visible || opacity` holds the
             // item alive through it, enabled cuts input at once
             active: root.launcherOpen || opacity > 0.001
@@ -300,6 +301,14 @@ PanelWindow {
                 }
             }
 
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.launcherOpen ? 120 : 85
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.32, 0.72, 0, 1]
+                }
+            }
+
             sourceComponent: Component {
                 Launcher { active: root.launcherOpen }
             }
@@ -316,6 +325,7 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
+            y: root.wallpaperOpen ? 0 : -6
             active: root.wallpaperOpen || opacity > 0.001
             visible: root.wallpaperOpen || opacity > 0.001
             enabled: root.wallpaperOpen
@@ -328,6 +338,14 @@ PanelWindow {
                         duration: root.wallpaperOpen ? 55 : 30
                         easing.type: Easing.OutCubic
                     }
+                }
+            }
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.wallpaperOpen ? 120 : 85
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
             }
 
@@ -346,6 +364,7 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
+            y: root.clipboardOpen ? 0 : -6
             active: root.clipboardOpen || opacity > 0.001
             visible: root.clipboardOpen || opacity > 0.001
             enabled: root.clipboardOpen
@@ -358,6 +377,14 @@ PanelWindow {
                         duration: root.clipboardOpen ? 55 : 30
                         easing.type: Easing.OutCubic
                     }
+                }
+            }
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.clipboardOpen ? 120 : 85
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
             }
 
@@ -376,6 +403,7 @@ PanelWindow {
                 left: parent.left
                 right: parent.right
             }
+            y: root.qsOpen ? 0 : -6
             visible: root.qsOpen || opacity > 0.001
             enabled: root.qsOpen
             active: root.qsOpen
@@ -389,6 +417,14 @@ PanelWindow {
                         duration: root.qsOpen ? 55 : 30
                         easing.type: Easing.OutCubic
                     }
+                }
+            }
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.qsOpen ? 120 : 85
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
             }
         }

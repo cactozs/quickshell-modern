@@ -1088,8 +1088,16 @@ Item {
         implicitWidth: pillLabel.implicitWidth + 24
         implicitHeight: 30
         radius: 15
-        color: pill.accent ? Theme.primaryContainer : Theme.surfaceContainerHigh
+        color: {
+            if (pill.accent)
+                return pillArea.containsMouse ? Qt.lighter(Theme.primaryContainer, 1.12) : Theme.primaryContainer;
+            return pillArea.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh;
+        }
         scale: pillArea.pressed ? 0.97 : 1
+
+        Behavior on color {
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
 
         Behavior on scale {
             NumberAnimation {
@@ -1113,6 +1121,7 @@ Item {
             id: pillArea
 
             anchors.fill: parent
+            hoverEnabled: true
 
             onClicked: pill.clicked()
         }
@@ -2053,6 +2062,14 @@ Item {
         color: netArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
         opacity: root.wifiConnecting === netRow.modelData.ssid ? 0.5 : 1
 
+        Behavior on color {
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
+
         MouseArea {
             id: netArea
 
@@ -2132,6 +2149,10 @@ Item {
         height: 30
         radius: Theme.radiusMD
         color: savedArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        }
 
         MouseArea {
             id: savedArea

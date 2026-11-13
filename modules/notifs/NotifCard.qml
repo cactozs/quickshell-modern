@@ -32,10 +32,15 @@ Rectangle {
     height: present ? implicitHeight : 0
     opacity: present ? 1 : 0
 
+    readonly property int showHeightMs: 90
+    readonly property int hideHeightMs: 65
+    readonly property int showOpacityMs: 55
+    readonly property int hideOpacityMs: 35
+
     // The card unfolds into its slot, then leaves faster than it arrived.
     Behavior on height {
         NumberAnimation {
-            duration: card.present ? 90 : 65
+            duration: card.present ? card.showHeightMs : card.hideHeightMs
             easing.type: Easing.BezierSpline
             easing.bezierCurve: [0.32, 0.72, 0, 1]
         }
@@ -43,7 +48,7 @@ Rectangle {
 
     Behavior on opacity {
         NumberAnimation {
-            duration: card.present ? 55 : 35
+            duration: card.present ? card.showOpacityMs : card.hideOpacityMs
             easing.type: Easing.OutCubic
         }
     }
@@ -60,7 +65,7 @@ Rectangle {
     Timer {
         id: exitKick
 
-        interval: 95
+        interval: Math.max(card.hideHeightMs, card.hideOpacityMs) + 20
         onTriggered: {
             if (card.compact)
                 card.model.popup = false;

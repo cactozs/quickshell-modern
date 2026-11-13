@@ -184,11 +184,17 @@ Item {
         id: tile
 
         required property string modelData
+        readonly property bool current: Wallpaper.current === tile.modelData
 
         width: root.thumbW
         height: root.thumbH
         radius: Theme.radiusMD
         color: Theme.surfaceContainerHigh
+        scale: tileArea.pressed ? 0.985 : (tileArea.containsMouse ? 1.02 : 1)
+
+        Behavior on scale {
+            NumberAnimation { duration: tileArea.pressed ? 40 : 90; easing.type: Easing.OutCubic }
+        }
 
         Image {
             anchors.fill: parent
@@ -203,17 +209,24 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: tile.radius
-            color: "transparent"
-            border.width: Wallpaper.current === tile.modelData ? 2 : 0
+            color: tileArea.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+            border.width: tile.current ? 2 : 0
             border.color: Theme.primary
 
             Behavior on border.width {
                 NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
             }
+
+            Behavior on color {
+                ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            }
         }
 
         MouseArea {
+            id: tileArea
+
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: Wallpaper.set(tile.modelData)
         }
