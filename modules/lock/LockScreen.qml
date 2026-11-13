@@ -40,7 +40,7 @@ QtObject {
         timeout: Number(Quickshell.env("QS_LOCK_TIMEOUT")) || 300
 
         onIsIdleChanged: {
-            if (isIdle)
+            if (isIdle && !Caffeine.enabled)
                 root.lock();
         }
     }
@@ -49,7 +49,7 @@ QtObject {
         timeout: Number(Quickshell.env("QS_MONITOR_OFF_TIMEOUT")) || 450
 
         onIsIdleChanged: {
-            if (isIdle)
+            if (isIdle && !Caffeine.enabled)
                 Quickshell.execDetached(["niri", "msg", "action", "power-off-monitors"]);
         }
     }
