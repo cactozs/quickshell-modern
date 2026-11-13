@@ -779,6 +779,14 @@ Item {
                     }
 
                     QsChip {
+                        icon: "coffee"
+                        label: "Caffeine"
+                        checked: Caffeine.enabled
+
+                        onToggled: Caffeine.toggle()
+                    }
+
+                    QsChip {
                         visible: root.wifiAvailable
                         icon: root.wifiOn ? "wifi" : "wifi_off"
                         label: "Wi-Fi"

@@ -24,7 +24,7 @@ keeps the whole desktop in sync with the wallpaper.
 - **Launcher** — fuzzy matching across application names, keywords and comments, with
   results ranked by launch frequency and persisted launch counts. Applications marked
   `Terminal=true` run through `$TERMINAL` (defaults to `alacritty`).
-- **Control center** — volume and brightness sliders, Mic / DND / Wi-Fi / Bluetooth chips,
+- **Control center** — volume and brightness sliders, Mic / DND / Caffeine / Wi-Fi / Bluetooth chips,
   and tabs for calendar, timer, stopwatch, weather, media, notifications, power, system
   monitor, tray and app colors.
 - **System monitor** — CPU and GPU load with temperatures plus RAM, read from `/proc` and
