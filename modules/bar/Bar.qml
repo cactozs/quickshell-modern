@@ -52,8 +52,9 @@ PanelWindow {
     readonly property bool panelOpen: root.launcherOpen || root.wallpaperOpen || root.clipboardOpen || root.qsOpen
 
     // iOS sheet timing: opening runs longer than closing, as a sheet that is
-    // pushed away dismisses faster than it is pulled up.
-    readonly property int morphDuration: root.panelOpen ? 85 : 60
+    // pushed away dismisses faster than it is pulled up. Kept short so the
+    // panels feel attached to the click that opens them.
+    readonly property int morphDuration: root.panelOpen ? 55 : 40
 
     // Bar visibility, including the time it takes to fade. A panel opened
     // while the bar is hidden keeps it on screen until the panel closes.
@@ -179,7 +180,8 @@ PanelWindow {
 
         Behavior on width {
             NumberAnimation {
-                duration: root.morphDuration
+                // Panel morphs stay snappy; island hover expand/collapse is calmer.
+                duration: root.panelOpen ? root.morphDuration : 140
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: [0.32, 0.72, 0, 1]
             }
@@ -232,9 +234,9 @@ PanelWindow {
                 // the morph; bringing them back waits for the panel content
                 // to clear, otherwise the QS mirror row double-exposes
                 SequentialAnimation {
-                    PauseAnimation { duration: (root.panelOpen || root.osdOpen) ? 0 : 20 }
+                    PauseAnimation { duration: (root.panelOpen || root.osdOpen) ? 0 : 12 }
                     NumberAnimation {
-                        duration: (root.panelOpen || root.osdOpen) ? 20 : 30
+                        duration: (root.panelOpen || root.osdOpen) ? 12 : 20
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -293,9 +295,9 @@ PanelWindow {
             opacity: root.launcherOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: root.launcherOpen ? 10 : 0 }
+                    PauseAnimation { duration: root.launcherOpen ? 4 : 0 }
                     NumberAnimation {
-                        duration: root.launcherOpen ? 40 : 20
+                        duration: root.launcherOpen ? 22 : 12
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -303,7 +305,7 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: root.launcherOpen ? 85 : 60
+                    duration: root.morphDuration
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
@@ -333,9 +335,9 @@ PanelWindow {
             opacity: root.wallpaperOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: root.wallpaperOpen ? 10 : 0 }
+                    PauseAnimation { duration: root.wallpaperOpen ? 4 : 0 }
                     NumberAnimation {
-                        duration: root.wallpaperOpen ? 40 : 20
+                        duration: root.wallpaperOpen ? 22 : 12
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -343,7 +345,7 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: root.wallpaperOpen ? 85 : 60
+                    duration: root.morphDuration
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
@@ -372,9 +374,9 @@ PanelWindow {
             opacity: root.clipboardOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: root.clipboardOpen ? 10 : 0 }
+                    PauseAnimation { duration: root.clipboardOpen ? 4 : 0 }
                     NumberAnimation {
-                        duration: root.clipboardOpen ? 40 : 20
+                        duration: root.clipboardOpen ? 22 : 12
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -382,7 +384,7 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: root.clipboardOpen ? 85 : 60
+                    duration: root.morphDuration
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
@@ -412,9 +414,9 @@ PanelWindow {
             opacity: root.qsOpen ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: root.qsOpen ? 10 : 0 }
+                    PauseAnimation { duration: root.qsOpen ? 4 : 0 }
                     NumberAnimation {
-                        duration: root.qsOpen ? 40 : 20
+                        duration: root.qsOpen ? 22 : 12
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -422,7 +424,7 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: root.qsOpen ? 85 : 60
+                    duration: root.morphDuration
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: [0.32, 0.72, 0, 1]
                 }
