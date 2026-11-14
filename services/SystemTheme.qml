@@ -7,9 +7,10 @@ import QtQuick
 import "../style"
 
 // Mirrors the QuickShell palette onto desktop app configs. Colors come from
-// Theme (matugen), so every write follows the current wallpaper. Each target
-// can be switched off in the quick settings "App colors" tab; off leaves the
-// last generated file untouched.
+// Theme, following either the wallpaper-driven Matugen palette or the fixed
+// Gruvbox palette (see theme-apps.json). Each target can be switched off in
+// the quick settings "App colors" tab; off leaves the last generated file
+// untouched.
 //
 // One-time wiring for the files that need it:
 //   GTK       automatic (~/.config/gtk-3.0/gtk.css, gtk-4.0/gtk.css)
@@ -98,11 +99,13 @@ Singleton {
         JsonAdapter {
             id: props
 
+            property string colorScheme: "matugen"
             property string themeAppsOff
         }
     }
 
     readonly property string themeAppsOff: props.themeAppsOff ? props.themeAppsOff : ""
+    readonly property string colorScheme: props.colorScheme === "gruvbox" ? "gruvbox" : "matugen"
 
     function enabled(id: string): bool {
         const ids = root.themeAppsOff.split(",");
@@ -119,6 +122,16 @@ Singleton {
             ids.push(id);
         props.themeAppsOff = ids.join(",");
         root.applyAll();
+    }
+
+    function setColorScheme(scheme: string): void {
+        const value = scheme === "gruvbox" ? "gruvbox" : "matugen";
+        if (root.colorScheme === value)
+            return;
+        props.colorScheme = value;
+        // Theme reads the same state file; let its palette update propagate via
+        // paletteKey/applyKick, but also schedule a direct apply as fallback.
+        applyKick.restart();
     }
 
     // ---- color formats --------------------------------------------------------
@@ -153,9 +166,21 @@ Singleton {
         return Qt.rgba(c.r, c.g, c.b, factor);
     }
 
-    // The 16 ANSI slots are built from M3 roles: roles stay contrast-safe
-    // against `surface` even on muted wallpapers.
-    readonly property var terminalNormal: [
+    // Classic Gruvbox ANSI slots. The M3 roles do not provide a true blue or
+    // magenta, so terminals would otherwise lose those colors entirely.
+    readonly property var gruvboxNormal: [
+        "#282828", "#cc241d", "#98971a", "#d79921",
+        "#458588", "#b16286", "#689d6a", "#a89984"
+    ]
+
+    readonly property var gruvboxBright: [
+        "#928374", "#fb4934", "#b8bb26", "#fabd2f",
+        "#83a598", "#d3869b", "#8ec07c", "#ebdbb2"
+    ]
+
+    // The 16 ANSI slots are built from M3 roles in Matugen mode: roles stay
+    // contrast-safe against `surface` even on muted wallpapers.
+    readonly property var terminalNormal: Theme.useGruvbox ? gruvboxNormal : [
         Theme.surfaceContainerLowest,
         Theme.error,
         Theme.secondary,
@@ -166,7 +191,7 @@ Singleton {
         Theme.surfaceText
     ]
 
-    readonly property var terminalBright: [
+    readonly property var terminalBright: Theme.useGruvbox ? gruvboxBright : [
         Theme.outline,
         Theme.error,
         Theme.secondary,
@@ -177,11 +202,13 @@ Singleton {
         Theme.surfaceText
     ]
 
-    // Re-run after matugen rewrites Colors.json. The debounce collapses the
-    // per-role adapter updates into one write per target.
+    // Re-run after the palette changes (matugen rewrites Colors.json or the
+    // color scheme setting changes). The debounce collapses rapid updates into
+    // one write per target.
     readonly property string paletteKey: [
         Theme.primary, Theme.primaryText, Theme.primaryContainer, Theme.primaryContainerText,
         Theme.secondary, Theme.secondaryText, Theme.tertiary, Theme.tertiaryText,
+        Theme.syntaxKeyword,
         Theme.error, Theme.errorText, Theme.errorContainer,
         Theme.surface, Theme.surfaceText, Theme.surfaceVariantText,
         Theme.surfaceContainerLowest, Theme.surfaceContainerLow, Theme.surfaceContainer,
@@ -517,11 +544,11 @@ Singleton {
             hi("String", Theme.secondary, null),
             hi("Identifier", Theme.surfaceText, null),
             hi("Function", Theme.primary, null),
-            hi("Statement", Theme.tertiary, null),
-            hi("Keyword", Theme.tertiary, null),
+            hi("Statement", Theme.syntaxKeyword, null),
+            hi("Keyword", Theme.syntaxKeyword, null),
             hi("Operator", Theme.surfaceVariantText, null),
             hi("Type", Theme.tertiary, null),
-            hi("PreProc", Theme.tertiary, null),
+            hi("PreProc", Theme.syntaxKeyword, null),
             hi("Special", Theme.secondary, null),
             hi("Error", Theme.error, null),
             hi("ErrorMsg", Theme.error, null),
@@ -553,6 +580,7 @@ Singleton {
             primary_container: rgb(Theme.primaryContainer),
             secondary: rgb(Theme.secondary),
             tertiary: rgb(Theme.tertiary),
+            keyword: rgb(Theme.syntaxKeyword),
             error: rgb(Theme.error)
         };
         const lines = [
@@ -580,7 +608,7 @@ Singleton {
             "\"ui.virtual.indent-guide\" = { fg = \"outline_variant\" }",
             "\"ui.virtual.ruler\" = { bg = \"surface_low\" }",
             "\"comment\" = { fg = \"outline\", modifiers = [\"italic\"] }",
-            "\"keyword\" = { fg = \"tertiary\" }",
+            "\"keyword\" = { fg = \"keyword\" }",
             "\"operator\" = { fg = \"muted\" }",
             "\"punctuation\" = { fg = \"muted\" }",
             "\"string\" = { fg = \"secondary\" }",
@@ -627,6 +655,7 @@ Singleton {
             onContainer: rgb(Theme.primaryContainerText),
             secondary: rgb(Theme.secondary),
             tertiary: rgb(Theme.tertiary),
+            keyword: rgb(Theme.syntaxKeyword),
             error: rgb(Theme.error),
             errorContainer: rgb(Theme.errorContainer)
         };
@@ -732,7 +761,7 @@ Singleton {
                         "string.special": { color: c.tertiary },
                         number: { color: c.tertiary },
                         boolean: { color: c.tertiary },
-                        keyword: { color: c.tertiary },
+                        keyword: { color: c.keyword },
                         type: { color: c.tertiary },
                         function: { color: c.primary },
                         "function.method": { color: c.primary },
@@ -748,7 +777,7 @@ Singleton {
                         "punctuation.bracket": { color: c.muted },
                         "punctuation.delimiter": { color: c.muted },
                         operator: { color: c.muted },
-                        preproc: { color: c.tertiary },
+                        preproc: { color: c.keyword },
                         special: { color: c.secondary },
                         embedded: { color: c.text },
                         predicate: { color: c.primary },
@@ -774,8 +803,8 @@ Singleton {
             ["string", Theme.secondary, ""],
             ["constant.numeric", Theme.tertiary, ""],
             ["constant.language", Theme.tertiary, ""],
-            ["keyword", Theme.tertiary, ""],
-            ["storage", Theme.tertiary, ""],
+            ["keyword", Theme.syntaxKeyword, ""],
+            ["storage", Theme.syntaxKeyword, ""],
             ["entity.name.function", Theme.primary, ""],
             ["support.function", Theme.primary, ""],
             ["entity.name.type", Theme.tertiary, ""],
@@ -952,8 +981,8 @@ Singleton {
     }
 
     function applyColorScheme(): void {
-        colorScheme.running = false;
-        colorScheme.running = true;
+        gtkColorScheme.running = false;
+        gtkColorScheme.running = true;
     }
 
     // Writes every enabled target. Called at startup, after a palette change
@@ -998,6 +1027,8 @@ Singleton {
         target: "systemtheme"
 
         function setApp(id: string, enabled: bool): void { root.setEnabled(id, enabled) }
+        function setColorScheme(scheme: string): void { root.setColorScheme(scheme) }
+        function getColorScheme(): string { return root.colorScheme }
         function apply(): void { root.applyAll() }
     }
 
@@ -1166,7 +1197,7 @@ Singleton {
     }
 
     Process {
-        id: colorScheme
+        id: gtkColorScheme
 
         command: ["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"]
     }

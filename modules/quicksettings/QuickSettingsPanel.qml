@@ -2252,8 +2252,8 @@ Item {
         }
     }
 
-    // App color targets: one chip per app, grouped by category. The shell
-    // rewrites the selected apps' configs whenever the matugen palette changes.
+    // Theme settings: color scheme (Matugen/Gruvbox), bar style, and per-app
+    // color targets rewritten by SystemTheme from the active palette.
     component SettingsTab: Item {
         id: settingsTab
 
@@ -2312,6 +2312,48 @@ Item {
                 color: Theme.plateBorder
             }
 
+            Text {
+                text: "Color scheme"
+                color: Theme.primary
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+            }
+
+            Row {
+                spacing: 6
+
+                QsChip {
+                    icon: "auto_awesome"
+                    label: "Matugen"
+                    checked: SystemTheme.colorScheme !== "gruvbox"
+
+                    onToggled: SystemTheme.setColorScheme("matugen")
+                }
+
+                QsChip {
+                    icon: "palette"
+                    label: "Gruvbox"
+                    checked: SystemTheme.colorScheme === "gruvbox"
+
+                    onToggled: SystemTheme.setColorScheme("gruvbox")
+                }
+            }
+
+            Text {
+                width: parent.width
+                text: "Matugen follows the wallpaper palette. Gruvbox uses a fixed palette. Both apply to enabled app configs below."
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.plateBorder
+            }
+
             RowLayout {
                 width: parent.width
                 spacing: 10
@@ -2334,7 +2376,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: "Applications follow the wallpaper palette. Off keeps the last colors."
+                text: "Selected applications follow the active color scheme. Off keeps the last colors."
                 color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
                 font.pixelSize: 11

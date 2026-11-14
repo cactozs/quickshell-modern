@@ -5,11 +5,12 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Shell palette. The OLED neutrals are pinned here (true black plates); every
-// accent comes from the matugen-generated Colors.json sitting next to this
-// file — `matugen image` / `awww img` rewrites it and the shell recolors live
-// through watchChanges. The JsonAdapter defaults below are the fallback
-// palette, so the shell looks right before the first matugen run.
+// Shell palette. Plates are pinned true black in Matugen mode and use warm
+// Gruvbox darks in Gruvbox mode; accents and surface roles come from either
+// the matugen-generated Colors.json (live, wallpaper-driven) or a fixed Gruvbox
+// palette, selected via theme-apps.json. Colors.json is watched so matugen runs
+// recolor the shell in Matugen mode; the adapter defaults below keep the shell
+// usable before the first matugen run.
 Singleton {
     id: root
 
@@ -27,42 +28,96 @@ Singleton {
     readonly property int radiusXL: 24
     readonly property int radiusMD: 12
 
-    // ---- OLED plates (fully opaque) ----
-    readonly property color plate: "#ff000000"
-    readonly property color plateStrong: "#ff000000"
-    readonly property color plateBorder: Qt.rgba(1, 1, 1, 0.08)
+    readonly property string colorScheme: state.colorScheme === "gruvbox" ? "gruvbox" : "matugen"
+    readonly property bool useGruvbox: colorScheme === "gruvbox"
+
+    // ---- plates (fully opaque; Gruvbox uses warm dark levels) ----
+    readonly property color plate: useGruvbox ? "#ff1d2021" : "#ff000000"
+    readonly property color plateStrong: useGruvbox ? "#ff282828" : "#ff000000"
+    readonly property color plateBorder: useGruvbox ? Qt.rgba(0.93, 0.86, 0.70, 0.10) : Qt.rgba(1, 1, 1, 0.08)
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.5)
 
-    // ---- accents & text (Colors.json wins over the defaults) ----
+    // ---- accents & text (scheme-dependent) ----
     // Text roles avoid the `on<Capital>` form: QML parses those as signal
     // handlers, so they silently evaluate to black instead of the color.
-    readonly property color primary: json.primary
-    readonly property color primaryText: json.on_primary
-    readonly property color primaryContainer: json.primary_container
-    readonly property color primaryContainerText: json.on_primary_container
-    readonly property color secondary: json.secondary
-    readonly property color secondaryText: json.on_secondary
-    readonly property color tertiary: json.tertiary
-    readonly property color tertiaryText: json.on_tertiary
-    readonly property color error: json.error
-    readonly property color errorText: json.on_error
-    readonly property color errorContainer: json.error_container
+    readonly property color primary: useGruvbox ? gruvbox.primary : json.primary
+    readonly property color primaryText: useGruvbox ? gruvbox.on_primary : json.on_primary
+    readonly property color primaryContainer: useGruvbox ? gruvbox.primary_container : json.primary_container
+    readonly property color primaryContainerText: useGruvbox ? gruvbox.on_primary_container : json.on_primary_container
+    readonly property color secondary: useGruvbox ? gruvbox.secondary : json.secondary
+    readonly property color secondaryText: useGruvbox ? gruvbox.on_secondary : json.on_secondary
+    readonly property color tertiary: useGruvbox ? gruvbox.tertiary : json.tertiary
+    readonly property color tertiaryText: useGruvbox ? gruvbox.on_tertiary : json.on_tertiary
+    // Editor keyword/statement accent: Gruvbox uses red, while Matugen keeps
+    // the existing tertiary role so editor themes do not change in that mode.
+    readonly property color syntaxKeyword: useGruvbox ? gruvbox.syntax_keyword : tertiary
+    readonly property color error: useGruvbox ? gruvbox.error : json.error
+    readonly property color errorText: useGruvbox ? gruvbox.on_error : json.on_error
+    readonly property color errorContainer: useGruvbox ? gruvbox.error_container : json.error_container
     // pinned white (user request): content on active chips/buttons must read
-    // on the dark container regardless of what matugen puts here
+    // on the dark container regardless of what the palette puts here
     readonly property color containerText: "#ffffffff"
-    readonly property color surface: json.surface
-    readonly property color surfaceText: json.on_surface
-    readonly property color surfaceVariantText: json.on_surface_variant
-    readonly property color surfaceContainerLowest: json.surface_container_lowest
-    readonly property color surfaceContainerLow: json.surface_container_low
-    readonly property color surfaceContainer: json.surface_container
-    readonly property color surfaceContainerHigh: json.surface_container_high
-    readonly property color surfaceContainerHighest: json.surface_container_highest
-    readonly property color outline: json.outline
-    readonly property color outlineVariant: json.outline_variant
-    readonly property color inverseSurface: json.inverse_surface
-    readonly property color inverseSurfaceText: json.inverse_on_surface
-    readonly property color shadow: json.shadow
+    readonly property color surface: useGruvbox ? gruvbox.surface : json.surface
+    readonly property color surfaceText: useGruvbox ? gruvbox.on_surface : json.on_surface
+    readonly property color surfaceVariantText: useGruvbox ? gruvbox.on_surface_variant : json.on_surface_variant
+    readonly property color surfaceContainerLowest: useGruvbox ? gruvbox.surface_container_lowest : json.surface_container_lowest
+    readonly property color surfaceContainerLow: useGruvbox ? gruvbox.surface_container_low : json.surface_container_low
+    readonly property color surfaceContainer: useGruvbox ? gruvbox.surface_container : json.surface_container
+    readonly property color surfaceContainerHigh: useGruvbox ? gruvbox.surface_container_high : json.surface_container_high
+    readonly property color surfaceContainerHighest: useGruvbox ? gruvbox.surface_container_highest : json.surface_container_highest
+    readonly property color outline: useGruvbox ? gruvbox.outline : json.outline
+    readonly property color outlineVariant: useGruvbox ? gruvbox.outline_variant : json.outline_variant
+    readonly property color inverseSurface: useGruvbox ? gruvbox.inverse_surface : json.inverse_surface
+    readonly property color inverseSurfaceText: useGruvbox ? gruvbox.inverse_on_surface : json.inverse_on_surface
+    readonly property color shadow: useGruvbox ? gruvbox.shadow : json.shadow
+
+    QtObject {
+        id: gruvbox
+
+        // Classic Gruvbox dark roles: orange dominant accent, green strings,
+        // yellow types/constants, red errors, warm gray surfaces and text.
+        readonly property color primary: "#fe8019"
+        readonly property color on_primary: "#1d2021"
+        readonly property color primary_container: "#af3a03"
+        readonly property color on_primary_container: "#fbf1c7"
+        readonly property color secondary: "#b8bb26"
+        readonly property color on_secondary: "#1d2021"
+        readonly property color tertiary: "#fabd2f"
+        readonly property color on_tertiary: "#1d2021"
+        readonly property color syntax_keyword: "#fb4934"
+        readonly property color error: "#fb4934"
+        readonly property color on_error: "#1d2021"
+        readonly property color error_container: "#9d0006"
+        readonly property color surface: "#282828"
+        readonly property color on_surface: "#ebdbb2"
+        readonly property color on_surface_variant: "#a89984"
+        readonly property color surface_container_lowest: "#1d2021"
+        readonly property color surface_container_low: "#32302f"
+        readonly property color surface_container: "#3c3836"
+        readonly property color surface_container_high: "#504945"
+        readonly property color surface_container_highest: "#665c54"
+        readonly property color outline: "#928374"
+        readonly property color outline_variant: "#665c54"
+        readonly property color inverse_surface: "#ebdbb2"
+        readonly property color inverse_on_surface: "#282828"
+        readonly property color shadow: "#000000"
+    }
+
+    FileView {
+        id: stateFile
+
+        path: Qt.resolvedUrl("../theme-apps.json")
+        watchChanges: true
+        printErrors: false
+
+        onFileChanged: stateFile.reload()
+
+        JsonAdapter {
+            id: state
+
+            property string colorScheme: "matugen"
+        }
+    }
 
     FileView {
         id: colorsFile
