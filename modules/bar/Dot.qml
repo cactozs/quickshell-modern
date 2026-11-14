@@ -27,18 +27,18 @@ Rectangle {
         // one soft overshoot, not a wobble; a spring diverges under rapid
         // workspace churn, so this is a fixed curve with the same shape
         NumberAnimation {
-            duration: 140
+            duration: 100
             easing.type: Easing.OutBack
             easing.overshoot: 1.2
         }
     }
 
     Behavior on color {
-        ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+        ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
     }
 
     Behavior on scale {
-        NumberAnimation { duration: 70; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 50; easing.type: Easing.OutCubic }
     }
 
     MouseArea {

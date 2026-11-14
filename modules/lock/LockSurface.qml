@@ -63,7 +63,7 @@ Item {
                 target: content
                 property: "opacity"
                 to: 1
-                duration: 240
+                duration: 170
                 easing.type: Easing.OutQuint
             }
         }
@@ -120,7 +120,7 @@ Item {
                 visible: opacity > 0.001
 
                 Behavior on opacity {
-                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 85; easing.type: Easing.OutCubic }
                 }
 
                 Row {
@@ -185,7 +185,7 @@ Item {
                 border.color: password.activeFocus ? Theme.primary : Theme.plateBorder
 
                 Behavior on border.color {
-                    ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
                 }
 
                 // Inner backing: the lock icon is a fixed prefix and the
@@ -216,7 +216,7 @@ Item {
                         font.pixelSize: 20
 
                         Behavior on color {
-                            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
                         }
                     }
 
@@ -285,10 +285,10 @@ Item {
     SequentialAnimation {
         id: shake
 
-        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: -12; duration: 50; easing.type: Easing.OutCubic }
-        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: 10; duration: 50; easing.type: Easing.OutCubic }
-        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: -6; duration: 50; easing.type: Easing.OutCubic }
-        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50; easing.type: Easing.OutCubic }
+        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: -12; duration: 35; easing.type: Easing.OutCubic }
+        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: 10; duration: 35; easing.type: Easing.OutCubic }
+        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: -6; duration: 35; easing.type: Easing.OutCubic }
+        NumberAnimation { target: bottomBlock; property: "anchors.horizontalCenterOffset"; to: 0; duration: 35; easing.type: Easing.OutCubic }
     }
 
     Connections {

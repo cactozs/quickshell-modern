@@ -202,7 +202,7 @@ Item {
             Behavior on contentX {
                 enabled: !strip.dragging && !strip.flicking
 
-                NumberAnimation { duration: 90; easing.type: Easing.OutQuint }
+                NumberAnimation { duration: 65; easing.type: Easing.OutQuint }
             }
 
             Text {
@@ -253,7 +253,7 @@ Item {
         scale: tileArea.pressed ? 0.985 : (tileArea.containsMouse ? 1.02 : 1)
 
         Behavior on scale {
-            NumberAnimation { duration: tileArea.pressed ? 40 : 90; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: tileArea.pressed ? 30 : 65; easing.type: Easing.OutCubic }
         }
 
         Image {
@@ -274,11 +274,11 @@ Item {
             border.color: tile.selected ? Theme.tertiary : Theme.primary
 
             Behavior on border.width {
-                NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 55; easing.type: Easing.OutCubic }
             }
 
             Behavior on color {
-                ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
             }
         }
 

@@ -207,7 +207,7 @@ Item {
                     font.pixelSize: 20
 
                     Behavior on color {
-                        ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                        ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -399,16 +399,16 @@ Item {
         scale: pressArea.pressed ? 0.97 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Behavior on border.width {
-            NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 55; easing.type: Easing.OutCubic }
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: pressArea.pressed ? 30 : 50
+                duration: pressArea.pressed ? 20 : 35
                 easing.type: Easing.OutCubic
             }
         }

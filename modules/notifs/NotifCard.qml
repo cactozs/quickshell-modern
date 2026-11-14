@@ -32,10 +32,10 @@ Rectangle {
     height: present ? implicitHeight : 0
     opacity: present ? 1 : 0
 
-    readonly property int showHeightMs: 90
-    readonly property int hideHeightMs: 65
-    readonly property int showOpacityMs: 55
-    readonly property int hideOpacityMs: 35
+    readonly property int showHeightMs: 65
+    readonly property int hideHeightMs: 45
+    readonly property int showOpacityMs: 40
+    readonly property int hideOpacityMs: 25
 
     // The card unfolds into its slot, then leaves faster than it arrived.
     Behavior on height {

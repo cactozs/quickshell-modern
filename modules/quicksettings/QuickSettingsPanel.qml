@@ -840,14 +840,14 @@ Item {
 
                     Behavior on x {
                         NumberAnimation {
-                            duration: 180
+                            duration: 125
                             easing.type: Easing.OutBack
-                            easing.overshoot: 1.2
+                            easing.overshoot: 0.55
                         }
                     }
 
                     Behavior on opacity {
-                        NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: 55; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -873,7 +873,7 @@ Item {
 
                             Behavior on scale {
                                 NumberAnimation {
-                                    duration: tabArea.pressed ? 30 : 50
+                                    duration: tabArea.pressed ? 20 : 35
                                     easing.type: Easing.OutCubic
                                 }
                             }
@@ -886,7 +886,7 @@ Item {
                                 font.pixelSize: 20
 
                                 Behavior on color {
-                                    ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                    ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
                                 }
                             }
 
@@ -1015,7 +1015,7 @@ Item {
 
                 Behavior on width {
                     enabled: !dragArea.pressed
-                    NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 55; easing.type: Easing.OutCubic }
                 }
             }
         }
@@ -1078,16 +1078,16 @@ Item {
         scale: chipArea.pressed ? 0.97 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Behavior on border.width {
-            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: chipArea.pressed ? 30 : 50
+                duration: chipArea.pressed ? 20 : 35
                 easing.type: Easing.OutCubic
             }
         }
@@ -1144,12 +1144,12 @@ Item {
         scale: pillArea.pressed ? 0.97 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: pillArea.pressed ? 30 : 50
+                duration: pillArea.pressed ? 20 : 35
                 easing.type: Easing.OutCubic
             }
         }
@@ -2111,11 +2111,11 @@ Item {
         opacity: root.wifiConnecting === netRow.modelData.ssid ? 0.5 : 1
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 85; easing.type: Easing.OutCubic }
         }
 
         MouseArea {
@@ -2199,7 +2199,7 @@ Item {
         color: savedArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         MouseArea {
@@ -2483,7 +2483,7 @@ Item {
 
         Behavior on scale {
             NumberAnimation {
-                duration: powerArea.pressed ? 30 : 50
+                duration: powerArea.pressed ? 20 : 35
                 easing.type: Easing.OutCubic
             }
         }
@@ -2980,7 +2980,7 @@ Item {
                 color: meter.fill
 
                 Behavior on width {
-                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
                 }
             }
         }
@@ -2998,7 +2998,7 @@ Item {
         color: trayArea.containsMouse ? Theme.surfaceContainerHigh : "transparent"
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         IconImage {
@@ -3049,7 +3049,7 @@ Item {
         color: menuArea.containsMouse && menuRow.actionable ? Theme.surfaceContainerHigh : "transparent"
 
         Behavior on color {
-            ColorAnimation { duration: 100; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: 70; easing.type: Easing.OutCubic }
         }
 
         Rectangle {
