@@ -8,8 +8,7 @@ import QtQuick
 
 // Notification server + state: history list, popup toasts, DND. The toasts
 // window binds to this; the history lives in the quick settings panel's
-// notifications tab. History is RAM-only (max 50) and resets on reload —
-// nothing on disk.
+// notifications tab. History is capped at 50 and persisted to disk.
 Singleton {
     id: root
 
@@ -22,6 +21,56 @@ Singleton {
     // Index of the notifications tab in QuickSettingsPanel's tab strip —
     // must match the order there.
     readonly property int notifsTab: 5
+
+    property bool _storeLoaded: false
+
+    function _persist(): void {
+        if (!root._storeLoaded) return;
+        const data = root.list.map(n => ({
+            time: n.time,
+            timeout: n.timeout,
+            appName: n.appName,
+            appIcon: n.appIcon,
+            image: n.image,
+            summary: n.summary,
+            body: n.body,
+            urgency: n.urgency
+        }));
+        store.setText(JSON.stringify(data));
+    }
+
+    FileView {
+        id: store
+
+        path: Qt.resolvedUrl("../notifs.json")
+
+        onLoaded: {
+            try {
+                const data = JSON.parse(text());
+                if (Array.isArray(data)) {
+                    root.list = data.slice(0, 50).map(d => notifComp.createObject(root, {
+                        src: null,
+                        time: d.time ?? 0,
+                        timeout: d.timeout ?? 6000,
+                        appName: d.appName ?? "",
+                        appIcon: d.appIcon ?? "",
+                        image: d.image ?? "",
+                        summary: d.summary ?? "",
+                        body: d.body ?? "",
+                        urgency: d.urgency ?? NotificationUrgency.Normal,
+                        actions: [],
+                        popup: false
+                    }));
+                }
+            } catch (e) {
+            }
+            root._storeLoaded = true;
+        }
+
+        onLoadFailed: {
+            root._storeLoaded = true;
+        }
+    }
 
     component Notif: QtObject {
         property var src
@@ -76,11 +125,16 @@ Singleton {
         n.src?.dismiss();
         root.list = root.list.filter(x => x !== n);
         n.destroy();
+        root._persist();
     }
 
     function clear(): void {
-        for (const n of root.list.slice())
-            root.dismiss(n);
+        for (const n of root.list.slice()) {
+            n.src?.dismiss();
+            n.destroy();
+        }
+        root.list = [];
+        root._persist();
     }
 
     NotificationServer {
@@ -116,6 +170,7 @@ Singleton {
             while (next.length > 50)
                 next.pop().destroy();
             root.list = next;
+            root._persist();
         }
     }
 

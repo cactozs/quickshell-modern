@@ -161,12 +161,67 @@ Item {
         return Math.floor(secs / 60) + ":" + root.pad2(secs % 60) + "." + (deciseconds % 10);
     }
 
+    property bool _timeStateLoaded: false
+
+    function saveTimeState(): void {
+        if (!root._timeStateLoaded) return;
+        timeStore.setText(JSON.stringify({
+            timerRunning: root.timerRunning,
+            timerTotalMs: root.timerTotalMs,
+            timerBaseMs: root.timerBaseMs,
+            timerStartMs: root.timerStartMs,
+            timerRemainingMs: root.timerRemainingMs,
+            swRunning: root.swRunning,
+            swElapsedMs: root.swElapsedMs,
+            swBaseMs: root.swBaseMs,
+            swStartMs: root.swStartMs
+        }));
+    }
+
+    FileView {
+        id: timeStore
+
+        path: Qt.resolvedUrl("../../quicksettings-state.json")
+
+        onLoaded: {
+            try {
+                const d = JSON.parse(text());
+                root.timerRunning = !!d.timerRunning;
+                root.timerTotalMs = d.timerTotalMs ?? 0;
+                root.timerBaseMs = d.timerBaseMs ?? 0;
+                root.timerStartMs = d.timerStartMs ?? 0;
+                root.timerRemainingMs = d.timerRemainingMs ?? 0;
+                root.swRunning = !!d.swRunning;
+                root.swElapsedMs = d.swElapsedMs ?? 0;
+                root.swBaseMs = d.swBaseMs ?? 0;
+                root.swStartMs = d.swStartMs ?? 0;
+                if (root.timerRunning) {
+                    root.timerRemainingMs = Math.max(0, root.timerBaseMs - (Date.now() - root.timerStartMs));
+                    if (root.timerRemainingMs === 0) {
+                        root.timerRunning = false;
+                        root.timerTotalMs = 0;
+                        root.timerBaseMs = 0;
+                    }
+                }
+                if (root.swRunning)
+                    root.swElapsedMs = root.swBaseMs + (Date.now() - root.swStartMs);
+            } catch (e) {
+            }
+            root._timeStateLoaded = true;
+        }
+
+        onLoadFailed: {
+            root._timeStateLoaded = true;
+        }
+    }
+
     function timerSet(ms: int): void {
         if (root.timerRunning)
             return;
         root.timerTotalMs = ms;
         root.timerBaseMs = ms;
         root.timerRemainingMs = ms;
+        root.saveTimeState();
     }
 
     function timerAdjust(deltaMs: int): void {
@@ -184,6 +239,7 @@ Item {
             root.timerStartMs = Date.now();
             root.timerRunning = true;
         }
+        root.saveTimeState();
     }
 
     function timerReset(): void {
@@ -191,6 +247,7 @@ Item {
         root.timerTotalMs = 0;
         root.timerBaseMs = 0;
         root.timerRemainingMs = 0;
+        root.saveTimeState();
     }
 
     function swToggle(): void {
@@ -202,12 +259,14 @@ Item {
             root.swStartMs = Date.now();
             root.swRunning = true;
         }
+        root.saveTimeState();
     }
 
     function swReset(): void {
         root.swRunning = false;
         root.swBaseMs = 0;
         root.swElapsedMs = 0;
+        root.saveTimeState();
     }
 
     // WMO weather codes used by Open-Meteo.
@@ -481,6 +540,7 @@ Item {
             root.timerRunning = false;
             root.timerTotalMs = 0;
             root.timerBaseMs = 0;
+            root.saveTimeState();
             Quickshell.execDetached(["notify-send", "Timer", "Time is up"]);
         }
     }

@@ -13,5 +13,9 @@ bar.json
 # launcher launch counts (sort order)
 services/LauncherCounts.json
 
+# persisted runtime state
+notifs.json
+quicksettings-state.json
+
 # zcode session artifacts
 .zcode/

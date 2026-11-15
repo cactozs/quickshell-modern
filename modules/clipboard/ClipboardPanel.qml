@@ -292,13 +292,15 @@ Item {
         required property string modelData
 
         readonly property bool binary: modelData.includes("[[ binary data")
+        readonly property bool image: binary && /png|jpe?g|gif|bmp|webp|svg/i.test(row.preview)
         // Preview without the leading "id\t" cliphist prefix.
         readonly property string preview: modelData.slice(modelData.indexOf("\t") + 1)
             .replace(/\t/g, " ").trim()
         // "[[ binary data · 45 KiB png ]]" → "45 KiB png"
         readonly property string caption: binary
             ? preview.replace(/^\[\[ binary data[^a-z0-9]*/i, "").replace(/\]\]$/, "").trim()
-            : ""
+            : row.preview.split("\n").length + "L · " + row.preview.length + "ch"
+        readonly property string kindIcon: row.image ? "image" : (row.binary ? "draft" : "notes")
         readonly property int entryId: parseInt(modelData)
         readonly property string thumbPath: root.thumbDir + "/" + entryId
 
@@ -331,24 +333,22 @@ Item {
             }
         }
 
-        // Thumbnail box for binary rows; the glyph shows until the decode
-        // finishes, then the image takes over.
+        // Type/preview box: image thumbnail for image binaries, icon otherwise.
         ClippingRectangle {
             id: thumb
 
-            visible: row.binary
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             width: 36
             height: 36
             radius: 8
-            color: "transparent"
+            color: row.image ? "transparent" : Theme.surfaceContainer
 
             Text {
                 anchors.centerIn: parent
-                visible: row.decoded === ""
-                text: "image"
+                visible: !(row.image && row.decoded !== "")
+                text: row.kindIcon
                 color: Theme.surfaceVariantText
                 font.family: Theme.iconFont
                 font.pixelSize: 18
@@ -356,7 +356,7 @@ Item {
 
             Image {
                 anchors.fill: parent
-                visible: row.decoded !== ""
+                visible: row.image && row.decoded !== ""
                 source: row.decoded
                 sourceSize: Qt.size(72, 72)
                 fillMode: Image.PreserveAspectCrop
@@ -364,19 +364,33 @@ Item {
             }
         }
 
-        Text {
-            anchors.left: row.binary ? thumb.right : parent.left
-            anchors.leftMargin: row.binary ? 10 : 12
+        Column {
+            anchors.left: thumb.right
+            anchors.leftMargin: 10
             anchors.right: delButton.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
-            text: row.binary ? row.caption : row.preview
-            color: row.binary ? Theme.surfaceVariantText : Theme.surfaceText
-            font.family: Theme.fontFamily
-            font.pixelSize: 12
-            maximumLineCount: 2
-            wrapMode: Text.Wrap
-            elide: Text.ElideRight
+            spacing: 2
+
+            Text {
+                width: parent.width
+                text: row.binary ? (row.caption !== "" ? row.caption : "Binary data") : row.preview
+                color: row.binary ? Theme.surfaceVariantText : Theme.surfaceText
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+                maximumLineCount: 1
+                wrapMode: Text.NoWrap
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                text: row.binary ? (row.image ? "Image" : "Binary") : row.caption
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 10
+                elide: Text.ElideRight
+            }
         }
 
         Text {
@@ -431,7 +445,7 @@ Item {
         }
 
         Component.onCompleted: {
-            if (row.binary) {
+            if (row.image) {
                 decodeProc.command = ["sh", "-c",
                     'mkdir -p "$3" && printf %s\\n "$1" | cliphist decode > "$2"',
                     "sh", row.modelData, row.thumbPath, root.thumbDir];

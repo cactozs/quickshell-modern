@@ -34,9 +34,11 @@ keeps the whole desktop in sync with the wallpaper.
 - **Wi-Fi management** — scanned networks and saved profiles via `nmcli`, including
   connect, disconnect, forget and password entry.
 - **Notifications** — a notification server with popup toasts, DND, actions, critical
-  notifications and a scrollable history in the control center.
+  notifications and a scrollable history in the control center. History is capped at 50
+  entries and persisted on disk (`notifs.json`, gitignored).
 - **Clipboard history** — browse, re-copy and delete `cliphist` entries with the keyboard
-  or mouse.
+  or mouse. Entries show a type/preview (image thumbnail or text/binary info with
+  size/length metadata).
 - **Wallpapers** — a thumbnail ribbon of your wallpaper directory (`~/Pictures/Wallpapers` by
   default, override with `QS_WALLPAPERS_DIR`), plus desktop drag-and-drop for new images.
 - **OSD** — volume, brightness, microphone, Caps Lock and keyboard-layout changes replace
@@ -312,7 +314,8 @@ whenever the palette or scheme changes; disabling one leaves its last generated 
 | bat | `~/.config/bat/themes/quickshell.tmTheme` | `--theme="quickshell"` in the bat config |
 
 The active scheme and disabled targets are stored in `theme-apps.json` at the project root
-(gitignored):
+(gitignored). Runtime UI state is also stored locally and gitignored (`bar.json`,
+`notifs.json`, `quicksettings-state.json`, `services/LauncherCounts.json`):
 
 ```json
 {
@@ -371,10 +374,9 @@ still land.
 
 - **niri only.** Workspace dots, keyboard-layout state and focused-output targeting use
   niri's IPC; other compositors are not supported.
-- **Notifications are in-memory.** History is capped at 50 entries and resets when the shell
-  restarts.
-- **Timer and stopwatch are in-memory.** They survive closing the panel but reset on shell
-  restart.
+- **Persisted local state.** Notification history (`notifs.json`) and timer/stopwatch state
+  (`quicksettings-state.json`) are persisted on disk and restored on startup/reload (gitignored).
+  Restored notifications keep history/metadata but not live actions or popup toasts.
 - **Weather needs network access.** Data comes from `api.open-meteo.com`; the location is
   detected by IP through `ipwho.is`. No API key is required.
 - **Idle lock timeouts** default to 300s (lock) / 450s (power off monitors); override with
@@ -383,6 +385,24 @@ still land.
   file by hand.
 - Tested with Quickshell 0.3.2 and niri 26.04 on Arch Linux. Other versions may work but are
   not tested.
+
+## Troubleshooting
+
+- **Check logs in a terminal:** run `qs` or `quickshell -p ~/.config/quickshell/shell.qml`
+  and read QML/runtime errors from stderr. After config changes, try `quickshell --reload`.
+- **Environment/deps:** run `./scripts/check-environment` for missing tools and
+  `./scripts/check-project` for QML/script validation. Missing optional tools disable
+  related features (e.g. no `cliphist`/`wl-paste` → clipboard history, no `awww` →
+  wallpapers, no `nmcli`/`bluetoothctl` → network/Bluetooth, no `matugen` → wallpaper-derived
+  palette fallback only).
+- **Clipboard issues:** ensure `wl-paste --watch cliphist store` daemons are running and
+  `cliphist`, `wl-copy`, `wl-paste` are installed.
+- **Theme/wallpaper issues:** verify `awww-daemon` is running, `QS_WALLPAPERS_DIR` points to
+  an existing directory, and matugen writes to `style/Colors.json` if using Matugen scheme.
+  Use `qs ipc call systemtheme apply` to force-regenerate app theme files.
+- **UI/fonts/icons:** install the expected fonts/icons (Google Sans, Material Symbols
+  Rounded) or adjust `style/Theme.qml`; on Qt/Wayland rendering issues, try toggling
+  `QT_QUICK_BACKEND=software`.
 
 ## Credits
 
