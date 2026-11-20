@@ -10,16 +10,44 @@ Singleton {
 
     readonly property bool enabled: state.enabled
 
+    property bool _loaded: false
+
     function toggle(): void {
         state.enabled = !state.enabled;
+        root._persist();
     }
 
-    PersistentProperties {
+    function _persist(): void {
+        if (!root._loaded)
+            return;
+        store.setText(JSON.stringify({ enabled: state.enabled }));
+    }
+
+    QtObject {
         id: state
 
-        reloadableId: "caffeine"
-
         property bool enabled: false
+    }
+
+    FileView {
+        id: store
+
+        path: Qt.resolvedUrl("../caffeine.json")
+
+        onLoaded: {
+            try {
+                const data = JSON.parse(text());
+                if (typeof data?.enabled === "boolean")
+                    state.enabled = data.enabled;
+            } catch (e) {
+            }
+            root._loaded = true;
+        }
+
+        onLoadFailed: {
+            root._loaded = true;
+            root._persist();
+        }
     }
 
     Process {
@@ -29,8 +57,10 @@ Singleton {
         running: root.enabled
 
         onExited: {
-            if (root.enabled)
+            if (root.enabled) {
                 state.enabled = false;
+                root._persist();
+            }
         }
     }
 }
