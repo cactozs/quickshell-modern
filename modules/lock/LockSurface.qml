@@ -81,31 +81,40 @@ Item {
         precision: SystemClock.Minutes
     }
 
-    // The big clock is clipped at the plate's bottom edge: at rest it sits
-    // entirely above the clip, so the slide reads as the clock crawling out.
+    // Big clock in the center of the screen; fades and slides in on lock.
     Item {
         id: clockReveal
 
         anchors.horizontalCenter: parent.horizontalCenter
-        // The plate height is constant, so this needs no reference to it.
-        y: BarState.topMargin + Theme.barHeight
+        anchors.verticalCenter: parent.verticalCenter
         width: root.width
-        height: bigClockBlock.implicitHeight + 24
-        clip: true
+        height: bigClockBlock.implicitHeight + 48
 
         ColumnLayout {
             id: bigClockBlock
 
             anchors.horizontalCenter: parent.horizontalCenter
-            y: root.expanded ? 16 : -height
-            spacing: 2
+            y: root.expanded ? 0 : 28
+            opacity: root.expanded ? 1 : 0
+            spacing: 4
 
             Behavior on y {
                 SequentialAnimation {
-                    PauseAnimation { duration: root.expanded ? 70 : 0 }
+                    PauseAnimation { duration: root.expanded ? 60 : 0 }
                     NumberAnimation {
-                        duration: root.expanded ? 220 : 130
-                        easing.type: Easing.OutQuint
+                        duration: root.expanded ? 260 : 140
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: [0.2, 0.8, 0.2, 1]
+                    }
+                }
+            }
+
+            Behavior on opacity {
+                SequentialAnimation {
+                    PauseAnimation { duration: root.expanded ? 60 : 0 }
+                    NumberAnimation {
+                        duration: root.expanded ? 220 : 120
+                        easing.type: Easing.OutCubic
                     }
                 }
             }
@@ -115,7 +124,7 @@ Item {
                 text: Qt.formatDateTime(bigClock.date, "HH:mm")
                 color: Theme.surfaceText
                 font.family: Theme.fontFamily
-                font.pixelSize: 84
+                font.pixelSize: 132
                 font.weight: Font.Light
             }
 
@@ -124,7 +133,7 @@ Item {
                 text: Qt.formatDateTime(bigClock.date, "dddd, d MMMM")
                 color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
-                font.pixelSize: 15
+                font.pixelSize: 20
             }
         }
     }
