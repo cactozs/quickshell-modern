@@ -115,11 +115,19 @@ QtObject {
         }
     }
 
+    // Let the lock surface collapse back into the bar before the compositor
+    // reveals the session; the reverse morph takes ~140 ms.
+    property Timer unlockDelay: Timer {
+        interval: 200
+
+        onTriggered: root.sessionLock.locked = false
+    }
+
     property Connections auth: Connections {
         target: LockAuth
 
         function onUnlocked(): void {
-            root.sessionLock.locked = false;
+            root.unlockDelay.restart();
         }
     }
 }
