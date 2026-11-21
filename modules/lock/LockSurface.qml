@@ -67,7 +67,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.scrim
+        color: Qt.rgba(0, 0, 0, 0.68)
     }
 
     // Clicking anywhere puts the caret back into the field.
@@ -124,7 +124,7 @@ Item {
                 text: Qt.formatDateTime(bigClock.date, "HH:mm")
                 color: Theme.surfaceText
                 font.family: Theme.fontFamily
-                font.pixelSize: 132
+                font.pixelSize: 168
                 font.weight: Font.Light
             }
 
@@ -133,7 +133,7 @@ Item {
                 text: Qt.formatDateTime(bigClock.date, "dddd, d MMMM")
                 color: Theme.surfaceVariantText
                 font.family: Theme.fontFamily
-                font.pixelSize: 20
+                font.pixelSize: 28
             }
         }
     }
