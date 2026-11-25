@@ -1,7 +1,7 @@
 import "modules/bar"
+import "modules/desktop"
 import "modules/lock"
 import "modules/notifs"
-import "modules/wallpaper"
 import "services"
 import Quickshell
 import QtQuick
@@ -17,11 +17,11 @@ ShellRoot {
         Bar {}
     }
 
-    // Invisible fullscreen catcher for image drops on empty desktop.
+    // Desktop layer: wallpaper drops, widgets and right-click widget menu.
     Variants {
         model: Quickshell.screens
 
-        DesktopDrop {}
+        DesktopLayer {}
     }
 
     NotifToasts {}
