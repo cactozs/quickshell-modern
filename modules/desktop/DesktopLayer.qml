@@ -19,7 +19,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "quickshell:desktop"
-    WlrLayershell.keyboardFocus: menu.visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: (menu.visible || root.anyWidgetDragging || root.anyWidgetPressed) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     anchors {
         top: true
@@ -37,6 +37,7 @@ PanelWindow {
     readonly property int edgeInset: 7
     readonly property int snapThreshold: 8
     property bool anyWidgetDragging: false
+    property bool anyWidgetPressed: false
 
     function closeMenu(): void {
         root.menuVisible = false;
@@ -197,6 +198,7 @@ PanelWindow {
                 property real startWx: 0
                 property real startWy: 0
                 property bool moved: false
+                property bool modSnapOff: false
 
                 anchors.fill: parent
                 hoverEnabled: true
@@ -217,6 +219,24 @@ PanelWindow {
                     startWx = widgetWrap.wx;
                     startWy = widgetWrap.wy;
                     moved = false;
+                    modSnapOff = (mouse.modifiers & Qt.ShiftModifier) || (mouse.modifiers & Qt.ControlModifier);
+                    root.anyWidgetPressed = true;
+                    dragArea.forceActiveFocus();
+                }
+
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Shift || event.key === Qt.Key_Control) {
+                        modSnapOff = true;
+                        event.accepted = false;
+                    }
+                }
+
+                Keys.onReleased: event => {
+                    if (event.isAutoRepeat)
+                        return;
+                    if (event.key === Qt.Key_Shift || event.key === Qt.Key_Control)
+                        modSnapOff = (event.key !== Qt.Key_Shift && (event.modifiers & Qt.ShiftModifier))
+                            || (event.key !== Qt.Key_Control && (event.modifiers & Qt.ControlModifier));
                 }
 
                 onPositionChanged: mouse => {
@@ -227,14 +247,16 @@ PanelWindow {
                     const dy = p.y - pressY;
                     if (!moved && Math.abs(dx) < 6 && Math.abs(dy) < 6)
                         return;
-                    if (!moved)
+                    if (!moved) {
                         root.anyWidgetDragging = true;
+                        dragArea.forceActiveFocus();
+                    }
                     moved = true;
                     const sw = widgetWrap.width * widgetWrap.widgetScale;
                     const sh = widgetWrap.height * widgetWrap.widgetScale;
                     let nx = startWx + dx;
                     let ny = startWy + dy;
-                    const snapOff = (mouse.modifiers & Qt.ShiftModifier) || (mouse.modifiers & Qt.ControlModifier);
+                    const snapOff = modSnapOff || (mouse.modifiers & Qt.ShiftModifier) || (mouse.modifiers & Qt.ControlModifier);
                     if (!snapOff) {
                         nx = root.snapCoord(nx, sw, root.width);
                         ny = root.snapCoord(ny, sh, root.height);
@@ -246,10 +268,16 @@ PanelWindow {
                 onReleased: {
                     if (moved)
                         DesktopWidgets.move(widgetWrap.widgetId, widgetWrap.wx, widgetWrap.wy);
+                    modSnapOff = false;
+                    root.anyWidgetPressed = false;
                     root.anyWidgetDragging = false;
                 }
 
-                onCanceled: root.anyWidgetDragging = false
+                onCanceled: {
+                    modSnapOff = false;
+                    root.anyWidgetPressed = false;
+                    root.anyWidgetDragging = false;
+                }
             }
         }
     }
