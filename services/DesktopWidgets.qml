@@ -51,7 +51,8 @@ Singleton {
             id: type + "-" + Date.now(),
             type: type,
             x: pos.x,
-            y: pos.y
+            y: pos.y,
+            scale: 1
         };
         root.items = root.items.concat([item]);
         root._persist();
@@ -86,6 +87,19 @@ Singleton {
         root._persist();
     }
 
+    function setScale(id: string, scale: real): void {
+        const idx = root.items.findIndex(w => w.id === id);
+        if (idx < 0)
+            return;
+        const s = Math.round(Math.max(0.7, Math.min(1.6, scale)) * 10) / 10;
+        if (Number(root.items[idx].scale ?? 1) === s)
+            return;
+        const next = root.items.slice();
+        next[idx] = Object.assign({}, root.items[idx], { scale: s });
+        root.items = next;
+        root._persist();
+    }
+
     function _persist(): void {
         if (!root._loaded)
             return;
@@ -106,7 +120,8 @@ Singleton {
                         id: String(w.id ?? (w.type + "-" + i)),
                         type: w.type,
                         x: Number.isFinite(w.x) ? w.x : 40,
-                        y: Number.isFinite(w.y) ? w.y : 40 + i * 140
+                        y: Number.isFinite(w.y) ? w.y : 40 + i * 140,
+                        scale: Number.isFinite(w.scale) ? Math.round(Math.max(0.7, Math.min(1.6, w.scale)) * 10) / 10 : 1
                     }));
                 }
             } catch (e) {

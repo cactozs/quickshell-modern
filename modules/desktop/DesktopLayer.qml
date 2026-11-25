@@ -91,6 +91,7 @@ PanelWindow {
             required property var modelData
             readonly property string widgetType: String(modelData.type ?? "")
             readonly property string widgetId: String(modelData.id ?? "")
+            readonly property real widgetScale: Number(modelData.scale ?? 1)
             property real wx: Number(modelData.x ?? 40)
             property real wy: Number(modelData.y ?? 40)
             readonly property bool dragging: dragArea.pressed && dragArea.moved
@@ -100,7 +101,8 @@ PanelWindow {
             width: loader.implicitWidth
             height: loader.implicitHeight
             z: dragging ? 10 : 2
-            scale: dragging ? 1.02 : 1
+            transformOrigin: Item.TopLeft
+            scale: widgetWrap.widgetScale * (dragging ? 1.02 : 1)
 
             Behavior on scale {
                 NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
@@ -163,8 +165,10 @@ PanelWindow {
                     if (!moved && Math.abs(dx) < 6 && Math.abs(dy) < 6)
                         return;
                     moved = true;
-                    widgetWrap.wx = Math.round(Math.max(0, Math.min(root.width - widgetWrap.width, startWx + dx)));
-                    widgetWrap.wy = Math.round(Math.max(0, Math.min(root.height - widgetWrap.height, startWy + dy)));
+                    const sw = widgetWrap.width * widgetWrap.widgetScale;
+                    const sh = widgetWrap.height * widgetWrap.widgetScale;
+                    widgetWrap.wx = Math.round(Math.max(0, Math.min(root.width - sw, startWx + dx)));
+                    widgetWrap.wy = Math.round(Math.max(0, Math.min(root.height - sh, startWy + dy)));
                 }
 
                 onReleased: {
@@ -229,6 +233,8 @@ PanelWindow {
 
             Repeater {
                 model: root.menuMode === "widget" ? [
+                    { action: "bigger", label: "Увеличить размер", icon: "zoom_in", danger: false },
+                    { action: "smaller", label: "Уменьшить размер", icon: "zoom_out", danger: false },
                     { action: "reset", label: "Сбросить позицию", icon: "restart_alt", danger: false },
                     { action: "remove", label: "Удалить виджет", icon: "delete", danger: true }
                 ] : []
@@ -240,11 +246,17 @@ PanelWindow {
                     icon: modelData.icon
                     danger: modelData.danger === true
                     onClicked: {
+                        const cur = Number(menu.menuItem?.scale ?? 1);
+                        if (modelData.action === "bigger")
+                            DesktopWidgets.setScale(root.menuWidgetId, cur + 0.1);
+                        if (modelData.action === "smaller")
+                            DesktopWidgets.setScale(root.menuWidgetId, cur - 0.1);
                         if (modelData.action === "reset")
                             DesktopWidgets.resetPosition(root.menuWidgetId);
                         if (modelData.action === "remove")
                             DesktopWidgets.remove(root.menuWidgetId);
-                        root.closeMenu();
+                        if (modelData.action === "remove" || modelData.action === "reset")
+                            root.closeMenu();
                     }
                 }
             }
