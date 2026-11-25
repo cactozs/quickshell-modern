@@ -12,7 +12,11 @@ Singleton {
 
     readonly property var available: [
         { type: "clock", label: "Часы", icon: "schedule" },
-        { type: "media", label: "Медиа", icon: "music_note" }
+        { type: "media", label: "Медиа", icon: "music_note" },
+        { type: "battery", label: "Батарея", icon: "battery_full" },
+        { type: "network", label: "Сеть", icon: "wifi" },
+        { type: "system", label: "Система", icon: "memory" },
+        { type: "weather", label: "Погода", icon: "partly_cloudy_day" }
     ]
 
     property var items: []
@@ -26,18 +30,28 @@ Singleton {
         return root.available.filter(w => !root.hasType(w.type));
     }
 
+    function spec(type: string): var {
+        return root.available.find(w => w.type === type) ?? null;
+    }
+
+    function defaultPos(idx: int): var {
+        const col = Math.floor(idx / 4);
+        const row = idx % 4;
+        return { x: 40 + col * 300, y: 40 + row * 150 };
+    }
+
     function add(type: string): void {
         if (root.hasType(type))
             return;
-        const spec = root.available.find(w => w.type === type);
-        if (!spec)
+        const s = root.spec(type);
+        if (!s)
             return;
-        const idx = root.items.length;
+        const pos = root.defaultPos(root.items.length);
         const item = {
             id: type + "-" + Date.now(),
             type: type,
-            x: 40,
-            y: 40 + idx * 140
+            x: pos.x,
+            y: pos.y
         };
         root.items = root.items.concat([item]);
         root._persist();
@@ -49,7 +63,26 @@ Singleton {
     }
 
     function move(id: string, x: real, y: real): void {
-        root.items = root.items.map(w => w.id === id ? Object.assign({}, w, { x: x, y: y }) : w);
+        const idx = root.items.findIndex(w => w.id === id);
+        if (idx < 0)
+            return;
+        const cur = root.items[idx];
+        if (Math.round(cur.x) === Math.round(x) && Math.round(cur.y) === Math.round(y))
+            return;
+        const next = root.items.slice();
+        next[idx] = Object.assign({}, cur, { x: Math.round(x), y: Math.round(y) });
+        root.items = next;
+        root._persist();
+    }
+
+    function resetPosition(id: string): void {
+        const idx = root.items.findIndex(w => w.id === id);
+        if (idx < 0)
+            return;
+        const pos = root.defaultPos(idx);
+        const next = root.items.slice();
+        next[idx] = Object.assign({}, root.items[idx], { x: pos.x, y: pos.y });
+        root.items = next;
         root._persist();
     }
 
