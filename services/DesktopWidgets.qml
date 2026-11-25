@@ -12,12 +12,36 @@ Singleton {
 
     readonly property var available: [
         { type: "clock", label: "Часы", icon: "schedule" },
+        { type: "transparentClock", label: "Часы (прозрачные)", icon: "schedule" },
         { type: "media", label: "Медиа", icon: "music_note" },
         { type: "battery", label: "Батарея", icon: "battery_full" },
         { type: "network", label: "Сеть", icon: "wifi" },
         { type: "system", label: "Система", icon: "memory" },
         { type: "weather", label: "Погода", icon: "partly_cloudy_day" }
     ]
+
+    readonly property var _colorRoles: [
+        { key: "surfaceText", label: "Текст" },
+        { key: "primary", label: "Основной" },
+        { key: "secondary", label: "Вторичный" },
+        { key: "tertiary", label: "Третичный" },
+        { key: "error", label: "Ошибка" },
+        { key: "syntaxKeyword", label: "Ключевой" },
+        { key: "outline", label: "Контур" },
+        { key: "inverseSurface", label: "Инверсный" },
+        { key: "containerText", label: "Белый" },
+        { key: "surfaceVariantText", label: "Приглушённый" }
+    ]
+
+    function colorRoles(): var {
+        return root._colorRoles;
+    }
+
+    function defaultSettings(type: string): var {
+        if (type === "transparentClock")
+            return { colorRole: "surfaceText" };
+        return ({});
+    }
 
     property var items: []
     property bool _loaded: false
@@ -52,7 +76,8 @@ Singleton {
             type: type,
             x: pos.x,
             y: pos.y,
-            scale: 1
+            scale: 1,
+            settings: root.defaultSettings(type)
         };
         root.items = root.items.concat([item]);
         root._persist();
@@ -100,6 +125,22 @@ Singleton {
         root._persist();
     }
 
+    function setSetting(id: string, key: string, value: var): void {
+        const idx = root.items.findIndex(w => w.id === id);
+        if (idx < 0)
+            return;
+        const cur = root.items[idx];
+        const curSettings = (cur.settings && typeof cur.settings === "object") ? cur.settings : root.defaultSettings(cur.type);
+        if (curSettings[key] === value)
+            return;
+        const nextSettings = Object.assign({}, curSettings);
+        nextSettings[key] = value;
+        const next = root.items.slice();
+        next[idx] = Object.assign({}, cur, { settings: nextSettings });
+        root.items = next;
+        root._persist();
+    }
+
     function _persist(): void {
         if (!root._loaded)
             return;
@@ -116,13 +157,19 @@ Singleton {
                 const data = JSON.parse(text());
                 if (Array.isArray(data)) {
                     const known = root.available.map(w => w.type);
-                    root.items = data.filter(w => known.includes(w?.type)).map((w, i) => ({
-                        id: String(w.id ?? (w.type + "-" + i)),
-                        type: w.type,
-                        x: Number.isFinite(w.x) ? w.x : 40,
-                        y: Number.isFinite(w.y) ? w.y : 40 + i * 140,
-                        scale: Number.isFinite(w.scale) ? Math.round(Math.max(0.7, Math.min(1.6, w.scale)) * 10) / 10 : 1
-                    }));
+                    root.items = data.filter(w => known.includes(w?.type)).map((w, i) => {
+                        const type = String(w.type);
+                        const defaults = root.defaultSettings(type);
+                        const stored = (w.settings && typeof w.settings === "object") ? w.settings : ({});
+                        return {
+                            id: String(w.id ?? (type + "-" + i)),
+                            type: type,
+                            x: Number.isFinite(w.x) ? w.x : 40,
+                            y: Number.isFinite(w.y) ? w.y : 40 + i * 140,
+                            scale: Number.isFinite(w.scale) ? Math.round(Math.max(0.7, Math.min(1.6, w.scale)) * 10) / 10 : 1,
+                            settings: Object.assign({}, defaults, stored)
+                        };
+                    });
                 }
             } catch (e) {
             }

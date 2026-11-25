@@ -118,12 +118,18 @@ PanelWindow {
             Loader {
                 id: loader
                 sourceComponent: widgetWrap.widgetType === "clock" ? clockComp
+                    : widgetWrap.widgetType === "transparentClock" ? transparentClockComp
                     : widgetWrap.widgetType === "media" ? mediaComp
                     : widgetWrap.widgetType === "battery" ? batteryComp
                     : widgetWrap.widgetType === "network" ? networkComp
                     : widgetWrap.widgetType === "system" ? systemComp
                     : widgetWrap.widgetType === "weather" ? weatherComp
                     : null
+
+                onLoaded: {
+                    if (item && "settings" in item)
+                        item.settings = Qt.binding(() => widgetWrap.modelData.settings ?? ({}));
+                }
             }
 
             MouseArea {
@@ -181,6 +187,7 @@ PanelWindow {
     }
 
     Component { id: clockComp; ClockWidget {} }
+    Component { id: transparentClockComp; TransparentClockWidget {} }
     Component { id: mediaComp; MediaWidget {} }
     Component { id: batteryComp; BatteryWidget {} }
     Component { id: networkComp; NetworkWidget {} }
@@ -257,6 +264,78 @@ PanelWindow {
                             DesktopWidgets.remove(root.menuWidgetId);
                         if (modelData.action === "remove" || modelData.action === "reset")
                             root.closeMenu();
+                    }
+                }
+            }
+
+            Column {
+                visible: root.menuMode === "widget" && menu.menuItem?.type === "transparentClock"
+                height: visible ? implicitHeight : 0
+                width: menuCol.width
+                spacing: 6
+                topPadding: visible ? 4 : 0
+                bottomPadding: visible ? 4 : 0
+                clip: true
+
+                Rectangle {
+                    x: 10
+                    width: parent.width - 20
+                    height: 1
+                    color: Theme.plateBorder
+                }
+
+                Text {
+                    leftPadding: 10
+                    rightPadding: 10
+                    text: "Цвет"
+                    color: Theme.surfaceVariantText
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 11
+                    font.weight: Font.Medium
+                }
+
+                Flow {
+                    x: 10
+                    width: parent.width - 20
+                    spacing: 8
+
+                    Repeater {
+                        model: DesktopWidgets.colorRoles()
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            readonly property string roleKey: String(modelData.key ?? "")
+                            readonly property bool selected: String(menu.menuItem?.settings?.colorRole ?? "surfaceText") === roleKey
+                            readonly property color swatchColor: {
+                                switch (roleKey) {
+                                case "primary": return Theme.primary;
+                                case "secondary": return Theme.secondary;
+                                case "tertiary": return Theme.tertiary;
+                                case "error": return Theme.error;
+                                case "syntaxKeyword": return Theme.syntaxKeyword;
+                                case "outline": return Theme.outline;
+                                case "inverseSurface": return Theme.inverseSurface;
+                                case "containerText": return Theme.containerText;
+                                case "surfaceVariantText": return Theme.surfaceVariantText;
+                                case "surfaceText":
+                                default: return Theme.surfaceText;
+                                }
+                            }
+
+                            width: 24
+                            height: 24
+                            radius: 12
+                            color: swatchColor
+                            border.width: selected ? 2 : 1
+                            border.color: selected ? Theme.primary : Theme.plateBorder
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: DesktopWidgets.setSetting(root.menuWidgetId, "colorRole", roleKey)
+                            }
+                        }
                     }
                 }
             }
