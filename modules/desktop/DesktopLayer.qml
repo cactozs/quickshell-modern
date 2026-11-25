@@ -34,6 +34,10 @@ PanelWindow {
     property string menuMode: "desktop" // desktop | widget
     property string menuWidgetId: ""
 
+    readonly property int edgeInset: 7
+    readonly property int snapThreshold: 8
+    property bool anyWidgetDragging: false
+
     function closeMenu(): void {
         root.menuVisible = false;
         root.menuWidgetId = "";
@@ -54,6 +58,23 @@ PanelWindow {
         root.menuX = x;
         root.menuY = y;
         root.menuVisible = true;
+    }
+
+    function snapCoord(value: real, size: real, total: real): real {
+        let best = value;
+        let bestDist = root.snapThreshold + 1;
+        const targets = [value, value + size / 2, value + size];
+        const lines = [root.edgeInset, total / 2, total - root.edgeInset];
+        for (const t of targets) {
+            for (const line of lines) {
+                const dist = Math.abs(t - line);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = value + (line - t);
+                }
+            }
+        }
+        return bestDist <= root.snapThreshold ? best : value;
     }
 
     // Wallpaper drop target.
@@ -78,6 +99,42 @@ PanelWindow {
                 mouse.accepted = true;
             } else if (root.menuVisible) {
                 root.closeMenu();
+            }
+        }
+    }
+
+    Canvas {
+        id: dragGrid
+        anchors.fill: parent
+        z: 1
+        visible: root.anyWidgetDragging
+        enabled: false
+        opacity: 0.45
+
+        onVisibleChanged: if (visible) requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.18);
+            ctx.lineWidth = 1;
+            const xs = [root.edgeInset, width / 2, width - root.edgeInset];
+            const ys = [root.edgeInset, height / 2, height - root.edgeInset];
+            for (const x of xs) {
+                const px = Math.round(x) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(px, 0);
+                ctx.lineTo(px, height);
+                ctx.stroke();
+            }
+            for (const y of ys) {
+                const py = Math.round(y) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(width, py);
+                ctx.stroke();
             }
         }
     }
@@ -170,18 +227,29 @@ PanelWindow {
                     const dy = p.y - pressY;
                     if (!moved && Math.abs(dx) < 6 && Math.abs(dy) < 6)
                         return;
+                    if (!moved)
+                        root.anyWidgetDragging = true;
                     moved = true;
                     const sw = widgetWrap.width * widgetWrap.widgetScale;
                     const sh = widgetWrap.height * widgetWrap.widgetScale;
-                    widgetWrap.wx = Math.round(Math.max(0, Math.min(root.width - sw, startWx + dx)));
-                    widgetWrap.wy = Math.round(Math.max(0, Math.min(root.height - sh, startWy + dy)));
+                    let nx = startWx + dx;
+                    let ny = startWy + dy;
+                    const snapOff = (mouse.modifiers & Qt.ShiftModifier) || (mouse.modifiers & Qt.ControlModifier);
+                    if (!snapOff) {
+                        nx = root.snapCoord(nx, sw, root.width);
+                        ny = root.snapCoord(ny, sh, root.height);
+                    }
+                    widgetWrap.wx = Math.round(Math.max(0, Math.min(root.width - sw, nx)));
+                    widgetWrap.wy = Math.round(Math.max(0, Math.min(root.height - sh, ny)));
                 }
 
                 onReleased: {
-                    if (!moved)
-                        return;
-                    DesktopWidgets.move(widgetWrap.widgetId, widgetWrap.wx, widgetWrap.wy);
+                    if (moved)
+                        DesktopWidgets.move(widgetWrap.widgetId, widgetWrap.wx, widgetWrap.wy);
+                    root.anyWidgetDragging = false;
                 }
+
+                onCanceled: root.anyWidgetDragging = false
             }
         }
     }
