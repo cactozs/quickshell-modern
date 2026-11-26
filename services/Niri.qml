@@ -92,8 +92,14 @@ Singleton {
         }
     }
 
+    property bool wsDirty: false
+    property bool kbDirty: false
+
     function refreshWorkspaces(): void {
-        if (!wsProc.running) wsProc.running = true;
+        if (wsProc.running)
+            root.wsDirty = true;
+        else
+            wsProc.running = true;
     }
 
     function scheduleReconnect(): void {
@@ -156,10 +162,20 @@ Singleton {
                 }
             }
         }
+
+        onExited: {
+            if (!root.wsDirty)
+                return;
+            root.wsDirty = false;
+            wsProc.running = true;
+        }
     }
 
     function refreshKeyboardLayouts(): void {
-        if (!kbProc.running) kbProc.running = true;
+        if (kbProc.running)
+            root.kbDirty = true;
+        else
+            kbProc.running = true;
     }
 
     Process {
@@ -178,6 +194,13 @@ Singleton {
                     console.warn("niri keyboard-layouts parse failed:", e);
                 }
             }
+        }
+
+        onExited: {
+            if (!root.kbDirty)
+                return;
+            root.kbDirty = false;
+            kbProc.running = true;
         }
     }
 

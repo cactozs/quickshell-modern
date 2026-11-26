@@ -55,14 +55,20 @@ Singleton {
         root.shown = false;
     }
 
+    property string pendingSetPath: ""
+
     function set(path: string): void {
         if (path === "")
             return;
         root.error = "";
         root.current = path;
+        root.close(); // the pick is done — fold the ribbon away
+        if (setProc.running) {
+            root.pendingSetPath = path;
+            return;
+        }
         setProc.command = ["awww", "img", path];
         setProc.running = true;
-        root.close(); // the pick is done — fold the ribbon away
     }
 
     function refresh(): void {
@@ -84,6 +90,11 @@ Singleton {
         const name = src.slice(src.lastIndexOf("/") + 1).toLowerCase();
         if (!["jpg", "jpeg", "png", "webp"].includes(name.slice(name.lastIndexOf(".") + 1)))
             return;
+        if (ensureDir.running || cp.running) {
+            ensureDir.pendingInstallSrc = src;
+            ensureDir.pendingInstallName = src.slice(src.lastIndexOf("/") + 1);
+            return;
+        }
         ensureDir.destAfter = "";
         ensureDir.installSrc = src;
         ensureDir.installName = src.slice(src.lastIndexOf("/") + 1);
@@ -96,6 +107,20 @@ Singleton {
         property string installSrc: ""
         property string installName: ""
         property string destAfter: ""
+        property string pendingInstallSrc: ""
+        property string pendingInstallName: ""
+
+        function dequeueInstall(): bool {
+            if (pendingInstallSrc === "")
+                return false;
+            installSrc = pendingInstallSrc;
+            installName = pendingInstallName;
+            pendingInstallSrc = "";
+            pendingInstallName = "";
+            destAfter = "";
+            ensureDir.running = true;
+            return true;
+        }
 
         command: ["mkdir", "-p", root.dir]
 
@@ -105,6 +130,7 @@ Singleton {
                 installSrc = "";
                 installName = "";
                 root.scanning = false;
+                dequeueInstall();
                 return;
             }
             if (installSrc !== "") {
@@ -113,6 +139,7 @@ Singleton {
                     installSrc = "";
                     installName = "";
                     root.set(dest);
+                    dequeueInstall();
                     return;
                 }
                 cp.dest = dest;
@@ -138,6 +165,8 @@ Singleton {
             } else if (cp.dest !== "")
                 root.error = "Could not copy image into wallpaper folder";
             cp.dest = "";
+            if (!ensureDir.running)
+                ensureDir.dequeueInstall();
         }
     }
 
@@ -213,6 +242,12 @@ Singleton {
             applyTimeout.stop();
             if (exitCode !== 0)
                 root.error = "Could not apply wallpaper — check that awww is running";
+            if (root.pendingSetPath !== "") {
+                const next = root.pendingSetPath;
+                root.pendingSetPath = "";
+                setProc.command = ["awww", "img", next];
+                setProc.running = true;
+            }
         }
     }
 

@@ -65,6 +65,15 @@ Singleton {
         stdout: SplitParser {
             onRead: () => root.refresh()
         }
+
+        onExited: monitorRetry.restart()
+    }
+
+    Timer {
+        id: monitorRetry
+
+        interval: 2000
+        onTriggered: monitor.running = true
     }
 
     // QProcess never emits onExited for a missing binary; if nothing answered

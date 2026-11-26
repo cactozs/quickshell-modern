@@ -41,14 +41,31 @@ Singleton {
         }
     }
 
+    property bool volDirty: false
+    property bool micDirty: false
+
+    function queueVol(): void {
+        if (volProc.running)
+            root.volDirty = true;
+        else
+            volProc.running = true;
+    }
+
+    function queueMic(): void {
+        if (micProc.running)
+            root.micDirty = true;
+        else
+            micProc.running = true;
+    }
+
     // Coalesce pactl's event bursts into one query pair.
     Timer {
         id: coalesce
 
         interval: 30
         onTriggered: {
-            volProc.running = true;
-            micProc.running = true;
+            root.queueVol();
+            root.queueMic();
         }
     }
 
@@ -111,6 +128,13 @@ Singleton {
                 root.showSinkOsd();
             }
         }
+
+        onExited: {
+            if (!root.volDirty)
+                return;
+            root.volDirty = false;
+            volProc.running = true;
+        }
     }
 
     Process {
@@ -126,6 +150,13 @@ Singleton {
                 }
                 root.showMicOsd();
             }
+        }
+
+        onExited: {
+            if (!root.micDirty)
+                return;
+            root.micDirty = false;
+            micProc.running = true;
         }
     }
 
