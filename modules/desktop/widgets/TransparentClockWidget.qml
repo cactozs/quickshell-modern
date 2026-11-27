@@ -47,7 +47,7 @@ Item {
     ColumnLayout {
         id: col
 
-        anchors.left: parent.left
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         spacing: 2
 
@@ -55,18 +55,18 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatDateTime(clock.date, "HH:mm")
             color: root.clockColor
-            font.family: Theme.fontFamily
+            font.family: "SF Pro Rounded"
             font.pixelSize: 144
-            font.weight: Font.Light
+            font.weight: Font.Bold
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatDateTime(clock.date, "dddd, d MMMM")
             color: root.clockColor
-            font.family: Theme.fontFamily
+            font.family: "SF Pro Rounded"
             font.pixelSize: 30
-            font.weight: Font.Normal
+            font.weight: Font.Bold
         }
     }
 }
