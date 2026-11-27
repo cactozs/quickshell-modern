@@ -46,6 +46,8 @@ Singleton {
     property var items: []
     property bool _loaded: false
 
+    signal itemChanged(string id)
+
     function hasType(type: string): bool {
         return root.items.some(w => w.type === type);
     }
@@ -93,11 +95,13 @@ Singleton {
         if (idx < 0)
             return;
         const cur = root.items[idx];
-        if (Math.round(cur.x) === Math.round(x) && Math.round(cur.y) === Math.round(y))
+        const nx = Math.round(x);
+        const ny = Math.round(y);
+        if (Math.round(cur.x) === nx && Math.round(cur.y) === ny)
             return;
-        const next = root.items.slice();
-        next[idx] = Object.assign({}, cur, { x: Math.round(x), y: Math.round(y) });
-        root.items = next;
+        // Mutate in place to avoid Repeater recreating all delegates on drag.
+        cur.x = nx;
+        cur.y = ny;
         root._persist();
     }
 
@@ -106,23 +110,26 @@ Singleton {
         if (idx < 0)
             return;
         const pos = root.defaultPos(idx);
-        const next = root.items.slice();
-        next[idx] = Object.assign({}, root.items[idx], { x: pos.x, y: pos.y });
-        root.items = next;
+        const cur = root.items[idx];
+        if (Math.round(cur.x) === pos.x && Math.round(cur.y) === pos.y)
+            return;
+        cur.x = pos.x;
+        cur.y = pos.y;
         root._persist();
+        root.itemChanged(id);
     }
 
     function setScale(id: string, scale: real): void {
         const idx = root.items.findIndex(w => w.id === id);
         if (idx < 0)
             return;
+        const cur = root.items[idx];
         const s = Math.round(Math.max(0.7, Math.min(1.6, scale)) * 10) / 10;
-        if (Number(root.items[idx].scale ?? 1) === s)
+        if (Number(cur.scale ?? 1) === s)
             return;
-        const next = root.items.slice();
-        next[idx] = Object.assign({}, root.items[idx], { scale: s });
-        root.items = next;
+        cur.scale = s;
         root._persist();
+        root.itemChanged(id);
     }
 
     function setSetting(id: string, key: string, value: var): void {
@@ -135,10 +142,9 @@ Singleton {
             return;
         const nextSettings = Object.assign({}, curSettings);
         nextSettings[key] = value;
-        const next = root.items.slice();
-        next[idx] = Object.assign({}, cur, { settings: nextSettings });
-        root.items = next;
+        cur.settings = nextSettings;
         root._persist();
+        root.itemChanged(id);
     }
 
     function _persist(): void {

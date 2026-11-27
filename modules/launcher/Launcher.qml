@@ -281,7 +281,7 @@ Item {
                 delegate: ResultItem {}
 
                 onCurrentIndexChanged: {
-                    if (currentIndex >= 0)
+                    if (currentIndex >= 0 && currentIndex < count)
                         positionViewAtIndex(currentIndex, ListView.Contain);
                 }
 

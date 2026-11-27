@@ -70,15 +70,24 @@ Singleton {
         root.reconnectDelay = 1000;
 
         if (ev.WorkspacesChanged) {
-            root.workspaces = ev.WorkspacesChanged.workspaces;
+            const ws = ev.WorkspacesChanged?.workspaces;
+            if (Array.isArray(ws))
+                root.workspaces = ws;
         } else if (ev.WorkspaceActivated || ev.WorkspaceUrgencyChanged) {
             // The activation/urgency events carry no full state; re-query.
             root.refreshWorkspaces();
         } else if (ev.KeyboardLayoutsChanged) {
-            const kl = ev.KeyboardLayoutsChanged.keyboard_layouts;
-            root.keyboardLayouts = { names: kl.names ?? [], currentIdx: kl.current_idx ?? 0 };
+            const kl = ev.KeyboardLayoutsChanged?.keyboard_layouts;
+            if (kl && typeof kl === "object") {
+                root.keyboardLayouts = {
+                    names: Array.isArray(kl.names) ? kl.names : [],
+                    currentIdx: Number.isFinite(kl.current_idx) ? kl.current_idx : 0
+                };
+            }
         } else if (ev.KeyboardLayoutSwitched) {
-            const idx = ev.KeyboardLayoutSwitched.idx;
+            const idx = ev.KeyboardLayoutSwitched?.idx;
+            if (!Number.isFinite(idx))
+                return;
             const changed = idx !== root.keyboardLayouts.currentIdx;
             root.keyboardLayouts = {
                 names: root.keyboardLayouts.names,

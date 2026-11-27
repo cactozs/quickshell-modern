@@ -96,7 +96,7 @@ Singleton {
     }
 
     Timer {
-        interval: 300
+        interval: 500
         repeat: true
         running: true
         onTriggered: brightnessFile.reload()

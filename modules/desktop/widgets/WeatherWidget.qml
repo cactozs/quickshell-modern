@@ -90,10 +90,14 @@ WidgetCard {
                 try {
                     const cur = JSON.parse(text)?.current;
                     const info = root.weatherCodeInfo(cur.weather_code);
+                    const temp = Number(cur?.temperature_2m);
+                    const feels = Number(cur?.apparent_temperature);
+                    if (!Number.isFinite(temp))
+                        throw new Error("bad weather payload");
                     root.weatherIcon = info.icon;
                     root.desc = info.desc;
-                    root.temp = Math.round(cur.temperature_2m) + "°";
-                    root.feels = "Ощущается " + Math.round(cur.apparent_temperature) + "°";
+                    root.temp = Math.round(temp) + "°";
+                    root.feels = "Ощущается " + Math.round(Number.isFinite(feels) ? feels : temp) + "°";
                     root.failed = false;
                     return;
                 } catch (e) {}

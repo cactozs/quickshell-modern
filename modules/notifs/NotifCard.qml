@@ -105,6 +105,8 @@ Rectangle {
                     anchors.fill: parent
                     source: card.model.image
                     fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: false
                     // decode small — full-res notification images are RAM poison
                     sourceSize: Qt.size(96, 96)
                 }

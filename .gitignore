@@ -15,6 +15,7 @@ services/LauncherCounts.json
 
 # persisted runtime state
 caffeine.json
+desktop-widgets.json
 notifs.json
 quicksettings-state.json
 

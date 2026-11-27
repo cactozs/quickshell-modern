@@ -32,10 +32,14 @@ Singleton {
 
     // Binary rows decode to one file per cliphist id here; wiped at startup
     // so ids reused after `cliphist wipe` can't show stale previews.
-    readonly property string thumbDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp")
+    readonly property string _runtimeDir: Quickshell.env("XDG_RUNTIME_DIR") || ""
+    readonly property string thumbDir: (_runtimeDir !== "" ? _runtimeDir : "/tmp")
         + "/quickshell-clip"
 
-    Component.onCompleted: Quickshell.execDetached(["rm", "-rf", root.thumbDir])
+    Component.onCompleted: {
+        if (root._runtimeDir !== "")
+            Quickshell.execDetached(["rm", "-rf", root.thumbDir]);
+    }
 
     function toggleCenter(screenName: string): void {
         if (root.shown) {

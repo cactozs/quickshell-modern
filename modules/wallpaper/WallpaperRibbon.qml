@@ -262,6 +262,7 @@ Item {
             sourceSize: Qt.size(root.thumbW * 2, root.thumbH * 2)
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
+            cache: false
         }
 
         RoundedMask { radius: tile.radius }

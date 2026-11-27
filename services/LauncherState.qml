@@ -47,12 +47,21 @@ Singleton {
 
     // Launch counts per desktop entry id, persisted so the launcher can sort
     // by how often apps are opened (ties go alphabetical in Launcher.qml).
-    readonly property var counts: JSON.parse(countsJson.counts || "{}")
+    readonly property var counts: root._parseCounts(countsJson.counts)
+
+    function _parseCounts(raw: string): var {
+        try {
+            const parsed = JSON.parse(raw || "{}");
+            return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
 
     function bump(entryId: string): void {
         if (entryId === "")
             return;
-        const c = root.counts;
+        const c = Object.assign({}, root.counts);
         c[entryId] = (c[entryId] ?? 0) + 1;
         countsJson.counts = JSON.stringify(c);
     }

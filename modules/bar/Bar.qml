@@ -105,7 +105,7 @@ PanelWindow {
     implicitHeight: root.launcherOpen ? launcherLoader.height
         : root.wallpaperOpen ? ribbonLoader.height
         : root.clipboardOpen ? clipPickerLoader.height
-        : root.qsOpen ? qsPanel.height : Theme.barHeight
+        : root.qsOpen ? (qsPanelLoader.item?.implicitHeight ?? Theme.barHeight) : Theme.barHeight
 
     Behavior on implicitHeight {
         NumberAnimation {
@@ -396,9 +396,9 @@ PanelWindow {
         }
 
         // The quick settings panel: same morph, toggled by clicking the
-        // bar's empty space.
-        QuickSettingsPanel {
-            id: qsPanel
+        // bar's empty space. Lazy-loaded to save RAM when closed.
+        Loader {
+            id: qsPanelLoader
 
             anchors {
                 top: parent.top
@@ -406,10 +406,9 @@ PanelWindow {
                 right: parent.right
             }
             y: root.qsOpen ? 0 : -6
+            active: root.qsOpen || opacity > 0.001
             visible: root.qsOpen || opacity > 0.001
             enabled: root.qsOpen
-            active: root.qsOpen
-            screenName: root.modelData.name
 
             opacity: root.qsOpen ? 1 : 0
             Behavior on opacity {
@@ -427,6 +426,13 @@ PanelWindow {
                     duration: root.morphDuration
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: [0.32, 0.72, 0, 1]
+                }
+            }
+
+            sourceComponent: Component {
+                QuickSettingsPanel {
+                    active: root.qsOpen
+                    screenName: root.modelData.name
                 }
             }
         }

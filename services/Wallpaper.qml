@@ -149,6 +149,8 @@ Singleton {
                 cp.running = true;
                 return;
             }
+            if (dequeueInstall())
+                return;
             scan.running = true;
         }
     }
@@ -189,8 +191,9 @@ Singleton {
         }
 
         onExited: (exitCode, exitStatus) => {
-            if (exitCode !== 0 && !query.running) {
+            if (exitCode !== 0) {
                 root.list = [];
+                root.current = "";
                 root.scanning = false;
                 root.error = "Wallpaper scan failed — install fd or check the folder";
             }

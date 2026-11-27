@@ -48,8 +48,7 @@ Singleton {
         }
 
         onExited: exitCode => {
-            if (exitCode !== 0)
-                root.available = false;
+            root.available = exitCode === 0;
         }
     }
 

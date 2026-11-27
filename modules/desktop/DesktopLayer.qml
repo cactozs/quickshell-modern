@@ -149,10 +149,20 @@ PanelWindow {
             required property var modelData
             readonly property string widgetType: String(modelData.type ?? "")
             readonly property string widgetId: String(modelData.id ?? "")
-            readonly property real widgetScale: Number(modelData.scale ?? 1)
+            property real widgetScale: Number(modelData.scale ?? 1)
             property real wx: Number(modelData.x ?? 40)
             property real wy: Number(modelData.y ?? 40)
             readonly property bool dragging: dragArea.pressed && dragArea.moved
+
+            function syncFromModel(): void {
+                if (!(dragArea.pressed && dragArea.moved)) {
+                    wx = Number(modelData.x ?? 40);
+                    wy = Number(modelData.y ?? 40);
+                }
+                widgetScale = Number(modelData.scale ?? 1);
+                if (loader.item && "settings" in loader.item)
+                    loader.item.settings = modelData.settings ?? ({});
+            }
 
             x: wx
             y: wy
@@ -166,11 +176,14 @@ PanelWindow {
                 NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
             }
 
-            onModelDataChanged: {
-                if (dragArea.pressed && dragArea.moved)
-                    return;
-                wx = Number(modelData.x ?? 40);
-                wy = Number(modelData.y ?? 40);
+            onModelDataChanged: syncFromModel()
+
+            Connections {
+                target: DesktopWidgets
+                function onItemChanged(id: string): void {
+                    if (id === widgetWrap.widgetId)
+                        widgetWrap.syncFromModel();
+                }
             }
 
             Loader {
@@ -186,7 +199,7 @@ PanelWindow {
 
                 onLoaded: {
                     if (item && "settings" in item)
-                        item.settings = Qt.binding(() => widgetWrap.modelData.settings ?? ({}));
+                        item.settings = widgetWrap.modelData.settings ?? ({});
                 }
             }
 

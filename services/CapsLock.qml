@@ -15,16 +15,10 @@ Singleton {
     property bool capsOn: false
 
     // The first sample after startup must not pop an OSD.
-    property bool started: false
+    property bool hasRead: false
 
     // Expanded LED paths, filled by the startup probe.
     property var ledPaths: []
-
-    Timer {
-        interval: 500
-        running: true
-        onTriggered: root.started = true
-    }
 
     // one-shot: expand the LED glob into concrete sysfs paths
     Process {
@@ -68,7 +62,7 @@ Singleton {
                 break;
             }
         }
-        if (!root.started) {
+        if (!root.hasRead) {
             root.capsOn = on;
             return;
         }
@@ -79,12 +73,21 @@ Singleton {
     }
 
     Timer {
+        id: initialReadTimer
+
         interval: 300
+        onTriggered: root.hasRead = true
+    }
+
+    Timer {
+        interval: 500
         repeat: true
         running: true
         onTriggered: {
             for (let i = 0; i < ledViews.count; i++)
                 ledViews.objectAt(i)?.reload();
+            if (!root.hasRead)
+                initialReadTimer.restart();
         }
     }
 }

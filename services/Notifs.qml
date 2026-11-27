@@ -45,10 +45,11 @@ Singleton {
         path: Qt.resolvedUrl("../notifs.json")
 
         onLoaded: {
+            let loaded = [];
             try {
                 const data = JSON.parse(text());
                 if (Array.isArray(data)) {
-                    root.list = data.slice(0, 50).map(d => notifComp.createObject(root, {
+                    loaded = data.slice(0, 50).map(d => notifComp.createObject(root, {
                         src: null,
                         time: d.time ?? 0,
                         timeout: d.timeout ?? 6000,
@@ -64,7 +65,19 @@ Singleton {
                 }
             } catch (e) {
             }
+            const pending = root.list.filter(n => n);
+            const merged = pending.concat(loaded.filter(n => !pending.some(p =>
+                p.time === n.time && p.summary === n.summary && p.appName === n.appName && p.body === n.body
+            )));
+            const capped = merged.slice(0, 50);
+            for (const n of loaded) {
+                if (!capped.includes(n))
+                    n.destroy();
+            }
+            root.list = capped;
             root._storeLoaded = true;
+            if (pending.length > 0)
+                root._persist();
         }
 
         onLoadFailed: {

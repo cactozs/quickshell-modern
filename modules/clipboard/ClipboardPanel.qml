@@ -215,12 +215,19 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 spacing: root.rowSpacing
                 model: root.results
-                currentIndex: root.currentIndex
+                currentIndex: Math.min(root.currentIndex, Math.max(0, root.results.length - 1))
                 delegate: ClipRow {}
 
                 onCurrentIndexChanged: {
-                    if (currentIndex >= 0)
+                    if (currentIndex >= 0 && currentIndex < count)
                         positionViewAtIndex(currentIndex, ListView.Contain);
+                }
+
+                onCountChanged: {
+                    if (count <= 0)
+                        return;
+                    if (root.currentIndex >= count)
+                        root.currentIndex = count - 1;
                 }
 
                 // Wheel moves the selection rather than scrolling, so Enter can
@@ -361,6 +368,7 @@ Item {
                 sourceSize: Qt.size(72, 72)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+                cache: false
             }
         }
 

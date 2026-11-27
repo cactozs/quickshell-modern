@@ -24,22 +24,11 @@ Singleton {
         : (root.percent < 66 ? "volume_down" : "volume_up")
 
     // The first sample after startup must not pop an OSD.
-    property bool started: false
+    property bool hasReadSink: false
+    property bool hasReadMic: false
     property real lastVolume: -1
     property bool lastMuted: false
     property bool lastMicMuted: false
-
-    Timer {
-        interval: 500
-        running: true
-
-        onTriggered: {
-            root.started = true;
-            root.lastVolume = root.volume;
-            root.lastMuted = root.muted;
-            root.lastMicMuted = root.micMuted;
-        }
-    }
 
     property bool volDirty: false
     property bool micDirty: false
@@ -70,8 +59,12 @@ Singleton {
     }
 
     function showSinkOsd(): void {
-        if (!root.started)
+        if (!root.hasReadSink) {
+            root.hasReadSink = true;
+            root.lastVolume = root.volume;
+            root.lastMuted = root.muted;
             return;
+        }
         if (root.volume === root.lastVolume && root.muted === root.lastMuted)
             return;
         root.lastVolume = root.volume;
@@ -80,8 +73,11 @@ Singleton {
     }
 
     function showMicOsd(): void {
-        if (!root.started)
+        if (!root.hasReadMic) {
+            root.hasReadMic = true;
+            root.lastMicMuted = root.micMuted;
             return;
+        }
         if (root.micMuted === root.lastMicMuted)
             return;
         root.lastMicMuted = root.micMuted;
@@ -102,6 +98,7 @@ Singleton {
         }
 
         onExited: retryTimer.restart()
+        onRunningChanged: if (!running) retryTimer.restart()
     }
 
     Timer {

@@ -11,6 +11,7 @@ Singleton {
     readonly property bool enabled: state.enabled
 
     property bool _loaded: false
+    property bool _stopping: false
 
     function toggle(): void {
         state.enabled = !state.enabled;
@@ -56,7 +57,16 @@ Singleton {
         command: ["systemd-inhibit", "--what=idle:sleep", "--who=quickshell", "--why=Caffeine mode", "--mode=block", "sleep", "infinity"]
         running: root.enabled
 
+        onRunningChanged: {
+            if (!running && !root.enabled)
+                root._stopping = true;
+        }
+
         onExited: {
+            if (root._stopping) {
+                root._stopping = false;
+                return;
+            }
             if (root.enabled) {
                 state.enabled = false;
                 root._persist();

@@ -18,9 +18,9 @@ import "../../services"
 // power, system, tray, app colors) plus the chip-opened networks view. Not a window of its own — the bar embeds this item and
 // morphs into it, same contract as Launcher.qml. Open state lives in
 // QuickSettings; the bar's empty space (or `qs ipc call quicksettings
-// toggleOn <output>`) toggles it. Timer/stopwatch/weather state lives here
-// instead of a service singleton: the item is always instantiated, only
-// its visibility flips, so a running timer survives closing the panel.
+// toggleOn <output>`) toggles it. Timer/stopwatch state lives in the
+// QuickSettings service so the panel can be lazy-loaded; weather and other
+// transient view state live here while the panel is open.
 Item {
     id: root
 
@@ -45,7 +45,7 @@ Item {
             return;
         const visibleTabs = root.tabs.map(t => t.tab);
         const index = visibleTabs.indexOf(root.currentTab);
-        root.currentTab = visibleTabs[(index + direction + visibleTabs.length) % visibleTabs.length];
+        QuickSettings.tab = visibleTabs[(index + direction + visibleTabs.length) % visibleTabs.length];
         event.accepted = true;
     }
 
@@ -66,7 +66,7 @@ Item {
     onCurrentTabChanged: {
         QuickSettings.tab = currentTab;
         if (currentTab !== 10)
-            trayTab.reset();
+            trayTabLoader.item?.reset();
         if (currentTab === 7) {
             if (root.active)
                 root.wifiRefresh();
@@ -99,18 +99,17 @@ Item {
         { icon: "palette", tab: 8 }
     ]
 
-    // ---- timer engine ----
-    property bool timerRunning: false
-    property int timerTotalMs: 0
-    property int timerBaseMs: 0
-    property int timerStartMs: 0
-    property int timerRemainingMs: 0
+    // ---- timer / stopwatch engine (state lives in QuickSettings service) ----
+    readonly property bool timerRunning: QuickSettings.timerRunning
+    readonly property int timerTotalMs: QuickSettings.timerTotalMs
+    readonly property int timerBaseMs: QuickSettings.timerBaseMs
+    readonly property int timerStartMs: QuickSettings.timerStartMs
+    readonly property int timerRemainingMs: QuickSettings.timerRemainingMs
 
-    // ---- stopwatch engine ----
-    property bool swRunning: false
-    property int swElapsedMs: 0
-    property int swBaseMs: 0
-    property int swStartMs: 0
+    readonly property bool swRunning: QuickSettings.swRunning
+    readonly property int swElapsedMs: QuickSettings.swElapsedMs
+    readonly property int swBaseMs: QuickSettings.swBaseMs
+    readonly property int swStartMs: QuickSettings.swStartMs
 
     // ---- weather ----
     property bool weatherLoading: false
@@ -161,113 +160,12 @@ Item {
         return Math.floor(secs / 60) + ":" + root.pad2(secs % 60) + "." + (deciseconds % 10);
     }
 
-    property bool _timeStateLoaded: false
-
-    function saveTimeState(): void {
-        if (!root._timeStateLoaded) return;
-        timeStore.setText(JSON.stringify({
-            timerRunning: root.timerRunning,
-            timerTotalMs: root.timerTotalMs,
-            timerBaseMs: root.timerBaseMs,
-            timerStartMs: root.timerStartMs,
-            timerRemainingMs: root.timerRemainingMs,
-            swRunning: root.swRunning,
-            swElapsedMs: root.swElapsedMs,
-            swBaseMs: root.swBaseMs,
-            swStartMs: root.swStartMs
-        }));
-    }
-
-    FileView {
-        id: timeStore
-
-        path: Qt.resolvedUrl("../../quicksettings-state.json")
-
-        onLoaded: {
-            try {
-                const d = JSON.parse(text());
-                root.timerRunning = !!d.timerRunning;
-                root.timerTotalMs = d.timerTotalMs ?? 0;
-                root.timerBaseMs = d.timerBaseMs ?? 0;
-                root.timerStartMs = d.timerStartMs ?? 0;
-                root.timerRemainingMs = d.timerRemainingMs ?? 0;
-                root.swRunning = !!d.swRunning;
-                root.swElapsedMs = d.swElapsedMs ?? 0;
-                root.swBaseMs = d.swBaseMs ?? 0;
-                root.swStartMs = d.swStartMs ?? 0;
-                if (root.timerRunning) {
-                    root.timerRemainingMs = Math.max(0, root.timerBaseMs - (Date.now() - root.timerStartMs));
-                    if (root.timerRemainingMs === 0) {
-                        root.timerRunning = false;
-                        root.timerTotalMs = 0;
-                        root.timerBaseMs = 0;
-                    }
-                }
-                if (root.swRunning)
-                    root.swElapsedMs = root.swBaseMs + (Date.now() - root.swStartMs);
-            } catch (e) {
-            }
-            root._timeStateLoaded = true;
-        }
-
-        onLoadFailed: {
-            root._timeStateLoaded = true;
-        }
-    }
-
-    function timerSet(ms: int): void {
-        if (root.timerRunning)
-            return;
-        root.timerTotalMs = ms;
-        root.timerBaseMs = ms;
-        root.timerRemainingMs = ms;
-        root.saveTimeState();
-    }
-
-    function timerAdjust(deltaMs: int): void {
-        if (root.timerRunning)
-            return;
-        root.timerSet(Math.max(0, root.timerBaseMs + deltaMs));
-    }
-
-    function timerToggle(): void {
-        if (root.timerRunning) {
-            root.timerBaseMs = Math.max(0, root.timerBaseMs - (Date.now() - root.timerStartMs));
-            root.timerRemainingMs = root.timerBaseMs;
-            root.timerRunning = false;
-        } else if (root.timerBaseMs > 0) {
-            root.timerStartMs = Date.now();
-            root.timerRunning = true;
-        }
-        root.saveTimeState();
-    }
-
-    function timerReset(): void {
-        root.timerRunning = false;
-        root.timerTotalMs = 0;
-        root.timerBaseMs = 0;
-        root.timerRemainingMs = 0;
-        root.saveTimeState();
-    }
-
-    function swToggle(): void {
-        if (root.swRunning) {
-            root.swBaseMs = root.swBaseMs + (Date.now() - root.swStartMs);
-            root.swElapsedMs = root.swBaseMs;
-            root.swRunning = false;
-        } else {
-            root.swStartMs = Date.now();
-            root.swRunning = true;
-        }
-        root.saveTimeState();
-    }
-
-    function swReset(): void {
-        root.swRunning = false;
-        root.swBaseMs = 0;
-        root.swElapsedMs = 0;
-        root.saveTimeState();
-    }
+    function timerSet(ms: int): void { QuickSettings.timerSet(ms) }
+    function timerAdjust(deltaMs: int): void { QuickSettings.timerAdjust(deltaMs) }
+    function timerToggle(): void { QuickSettings.timerToggle() }
+    function timerReset(): void { QuickSettings.timerReset() }
+    function swToggle(): void { QuickSettings.swToggle() }
+    function swReset(): void { QuickSettings.swReset() }
 
     // WMO weather codes used by Open-Meteo.
     function weatherCodeInfo(code: var): var {
@@ -356,13 +254,21 @@ Item {
             return;
         }
         const info = root.weatherCodeInfo(cur.weather_code);
+        const temp = Number(cur.temperature_2m);
+        const feels = Number(cur.apparent_temperature);
+        const wind = Number(cur.wind_speed_10m);
+        const humidity = Number(cur.relative_humidity_2m);
+        if (!Number.isFinite(temp)) {
+            root.weatherFailed = true;
+            return;
+        }
         root.weatherFailed = false;
-        root.weatherTemp = Math.round(cur.temperature_2m);
-        root.weatherFeels = Math.round(cur.apparent_temperature);
+        root.weatherTemp = Math.round(temp);
+        root.weatherFeels = Math.round(Number.isFinite(feels) ? feels : temp);
         root.weatherDesc = info.desc;
         root.weatherIcon = info.icon;
-        root.weatherWind = Math.round(cur.wind_speed_10m);
-        root.weatherHumidity = cur.relative_humidity_2m;
+        root.weatherWind = Math.round(Number.isFinite(wind) ? wind : 0);
+        root.weatherHumidity = Number.isFinite(humidity) ? humidity : 0;
         // next hours from now, spilling into tomorrow if late
         const hourly = data.hourly ?? {};
         const times = hourly.time ?? [];
@@ -370,11 +276,14 @@ Item {
             .map((time, i) => ({ time, i }))
             .filter(h => h.time > cur.time)
             .slice(0, 3)
-            .map(h => ({
-                time: h.time.substring(11, 16),
-                temp: Math.round(hourly.temperature_2m[h.i]),
-                icon: root.weatherCodeInfo(hourly.weather_code[h.i]).icon
-            }));
+            .map(h => {
+                const t = Number(hourly.temperature_2m?.[h.i]);
+                return {
+                    time: h.time.substring(11, 16),
+                    temp: Math.round(Number.isFinite(t) ? t : 0),
+                    icon: root.weatherCodeInfo(hourly.weather_code?.[h.i]).icon
+                };
+            });
     }
 
     function setWifi(enable: bool): void {
@@ -416,6 +325,7 @@ Item {
             cmd.push("password", password);
         wifiConnectProc.command = cmd;
         wifiConnectProc.running = true;
+        wifiConnectWatchdog.restart();
     }
 
     function wifiDisconnect(): void {
@@ -449,7 +359,7 @@ Item {
             const i1 = line.indexOf(":");
             const i2 = line.indexOf(":", i1 + 1);
             const i3 = line.lastIndexOf(":");
-            if (i1 < 1 || i2 < 0 || i3 <= i2)
+            if (i1 < 0 || i2 < 0 || i3 <= i2)
                 continue;
             const ssid = line.slice(i2 + 1, i3).replace(/\\(.)/g, "$1");
             if (ssid === "")
@@ -507,7 +417,7 @@ Item {
         } else {
             root.wifiPasswordFor = "";
             root.wifiError = "";
-            trayTab.reset();
+            trayTabLoader.item?.reset();
         }
     }
 
@@ -525,33 +435,6 @@ Item {
     }
 
     // ---- timers & processes ----
-
-    Timer {
-        id: timerTick
-
-        interval: 200
-        repeat: true
-        running: root.timerRunning
-
-        onTriggered: {
-            root.timerRemainingMs = Math.max(0, root.timerBaseMs - (Date.now() - root.timerStartMs));
-            if (root.timerRemainingMs !== 0)
-                return;
-            root.timerRunning = false;
-            root.timerTotalMs = 0;
-            root.timerBaseMs = 0;
-            root.saveTimeState();
-            Quickshell.execDetached(["notify-send", "Timer", "Time is up"]);
-        }
-    }
-
-    Timer {
-        interval: 33
-        repeat: true
-        running: root.swRunning
-
-        onTriggered: root.swElapsedMs = root.swBaseMs + (Date.now() - root.swStartMs)
-    }
 
     Timer {
         id: weatherKick
@@ -702,7 +585,18 @@ Item {
     Process {
         id: wifiConnectProc
 
+        property bool _sawExit: false
+        property bool _timedOut: false
+
+        onStarted: {
+            _sawExit = false;
+            _timedOut = false;
+        }
         onExited: exitCode => {
+            _sawExit = true;
+            wifiConnectWatchdog.stop();
+            if (_timedOut)
+                return;
             root.wifiConnecting = "";
             if (exitCode !== 0) {
                 root.wifiError = "Could not connect — check the password";
@@ -710,6 +604,29 @@ Item {
             }
             root.wifiPasswordFor = "";
             root.wifiRefresh();
+        }
+        onRunningChanged: {
+            if (running || _sawExit || _timedOut)
+                return;
+            wifiConnectWatchdog.stop();
+            if (root.wifiConnecting !== "") {
+                root.wifiConnecting = "";
+                root.wifiError = "Could not connect";
+            }
+        }
+    }
+
+    Timer {
+        id: wifiConnectWatchdog
+
+        interval: 15000
+        onTriggered: {
+            if (root.wifiConnecting === "")
+                return;
+            wifiConnectProc._timedOut = true;
+            wifiConnectProc.running = false;
+            root.wifiConnecting = "";
+            root.wifiError = "Connection timed out";
         }
     }
 
@@ -973,46 +890,93 @@ Item {
 
             // ---- tabs ----
 
-            CalendarTab {
-                visible: root.currentTab === 0
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 0
+                visible: active
+                sourceComponent: Component { CalendarTab {} }
             }
 
-            TimerTab {
-                visible: root.currentTab === 1
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 1
+                visible: active
+                sourceComponent: Component { TimerTab {} }
             }
 
-            StopwatchTab {
-                visible: root.currentTab === 2
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 2
+                visible: active
+                sourceComponent: Component { StopwatchTab {} }
             }
 
-            WeatherTab {
-                visible: root.currentTab === 3
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 3
+                visible: active
+                sourceComponent: Component { WeatherTab {} }
             }
 
-            MediaTab {
-                visible: root.currentTab === 4
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 4
+                visible: active
+                sourceComponent: Component { MediaTab {} }
             }
 
-            NotifsTab {
-                visible: root.currentTab === 5
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 5
+                visible: active
+                sourceComponent: Component { NotifsTab {} }
             }
 
-            PowerTab {
-                visible: root.currentTab === 6
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 6
+                visible: active
+                sourceComponent: Component { PowerTab {} }
             }
 
-            SettingsTab {
-                visible: root.currentTab === 8
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 8
+                visible: active
+                sourceComponent: Component { SettingsTab {} }
             }
 
-            WifiTab {
-                visible: root.currentTab === 7
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 7
+                visible: active
+                sourceComponent: Component { WifiTab {} }
             }
 
-            SystemTab {}
+            Loader {
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 9
+                visible: active
+                sourceComponent: Component { SystemTab {} }
+            }
 
-            TrayTab {
-                id: trayTab
+            Loader {
+                id: trayTabLoader
+                width: parent.width
+                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                active: root.currentTab === 10
+                visible: active
+                sourceComponent: Component { TrayTab {} }
             }
         }
     }
