@@ -892,7 +892,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 0
                 visible: active
                 sourceComponent: Component { CalendarTab {} }
@@ -900,7 +900,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 1
                 visible: active
                 sourceComponent: Component { TimerTab {} }
@@ -908,7 +908,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 2
                 visible: active
                 sourceComponent: Component { StopwatchTab {} }
@@ -916,7 +916,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 3
                 visible: active
                 sourceComponent: Component { WeatherTab {} }
@@ -924,7 +924,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 4
                 visible: active
                 sourceComponent: Component { MediaTab {} }
@@ -932,7 +932,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 5
                 visible: active
                 sourceComponent: Component { NotifsTab {} }
@@ -940,7 +940,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 6
                 visible: active
                 sourceComponent: Component { PowerTab {} }
@@ -948,7 +948,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 8
                 visible: active
                 sourceComponent: Component { SettingsTab {} }
@@ -956,7 +956,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 7
                 visible: active
                 sourceComponent: Component { WifiTab {} }
@@ -964,7 +964,7 @@ Item {
 
             Loader {
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 9
                 visible: active
                 sourceComponent: Component { SystemTab {} }
@@ -973,7 +973,7 @@ Item {
             Loader {
                 id: trayTabLoader
                 width: parent.width
-                height: active && item ? Math.max(item.implicitHeight, item.height) : 0
+                height: active && item ? item.implicitHeight : 0
                 active: root.currentTab === 10
                 visible: active
                 sourceComponent: Component { TrayTab {} }
@@ -1204,8 +1204,7 @@ Item {
         id: cal
 
         width: parent.width
-        height: calCol.implicitHeight
-        visible: root.currentTab === 0
+        implicitHeight: calCol.implicitHeight
 
         property date shownMonth: {
             const now = new Date();
@@ -1379,8 +1378,7 @@ Item {
 
     component TimerTab: Item {
         width: parent.width
-        height: timerCol.implicitHeight
-        visible: root.currentTab === 1
+        implicitHeight: timerCol.implicitHeight
 
         Column {
             id: timerCol
@@ -1473,8 +1471,7 @@ Item {
 
     component StopwatchTab: Item {
         width: parent.width
-        height: swCol.implicitHeight
-        visible: root.currentTab === 2
+        implicitHeight: swCol.implicitHeight
 
         Column {
             id: swCol
@@ -1519,8 +1516,7 @@ Item {
         id: weather
 
         width: parent.width
-        height: weatherCol.implicitHeight
-        visible: root.currentTab === 3
+        implicitHeight: weatherCol.implicitHeight
 
         Column {
             id: weatherCol
@@ -1679,8 +1675,7 @@ Item {
         id: media
 
         width: parent.width
-        height: media.player !== null ? mediaBody.height : nothingText.implicitHeight
-        visible: root.currentTab === 4
+        implicitHeight: media.player !== null ? mediaBody.height : nothingText.implicitHeight
 
         // The playing player if any, else the first player, else null.
         readonly property var player: {
@@ -1799,8 +1794,7 @@ Item {
         id: notifs
 
         width: parent.width
-        height: notifsCol.implicitHeight
-        visible: root.currentTab === 5
+        implicitHeight: notifsCol.implicitHeight
 
         readonly property int maxListHeight: Math.round(
             (Quickshell.screens.find(s => s.name === root.screenName)?.height ?? 900) * 0.55)
@@ -1897,8 +1891,7 @@ Item {
         id: wifiView
 
         width: parent.width
-        height: wifiCol.implicitHeight
-        visible: root.currentTab === 7
+        implicitHeight: wifiCol.implicitHeight
 
         readonly property int maxListHeight: Math.round(
             (Quickshell.screens.find(s => s.name === root.screenName)?.height ?? 900) * 0.45)
@@ -2282,7 +2275,7 @@ Item {
         id: settingsTab
 
         width: parent.width
-        height: settingsCol.implicitHeight
+        implicitHeight: settingsCol.implicitHeight
 
         Column {
             id: settingsCol
@@ -2450,8 +2443,7 @@ Item {
 
     component PowerTab: Item {
         width: parent.width
-        height: powerCol.implicitHeight
-        visible: root.currentTab === 6
+        implicitHeight: powerCol.implicitHeight
 
         Column {
             id: powerCol
@@ -2550,8 +2542,7 @@ Item {
         id: sysTab
 
         width: parent.width
-        height: sysCol.implicitHeight
-        visible: root.currentTab === 9
+        implicitHeight: sysCol.implicitHeight
 
         readonly property bool monitoring: root.active && sysTab.visible
 
@@ -2768,8 +2759,7 @@ Item {
         id: trayView
 
         width: parent.width
-        height: trayCol.implicitHeight
-        visible: root.currentTab === 10
+        implicitHeight: trayCol.implicitHeight
 
         readonly property var items: SystemTray.items.values
         readonly property int maxListHeight: Math.round(
