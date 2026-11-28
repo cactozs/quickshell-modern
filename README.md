@@ -299,7 +299,7 @@ whenever the palette or scheme changes; disabling one leaves its last generated 
 
 | Target | File written | One-time setup |
 | --- | --- | --- |
-| GTK | `~/.config/gtk-3.0/gtk.css`, `~/.config/gtk-4.0/gtk.css` | Automatic |
+| GTK | `~/.config/gtk-3.0/gtk.css`, `~/.config/gtk-4.0/gtk.css` | Generated directly by Matugen |
 | Qt | `~/.config/qt6ct/colors/matugen.conf` | Select the palette in qt6ct |
 | niri | `~/.config/niri/quickshell.kdl` | `include "quickshell.kdl"` |
 | Ghostty | `~/.config/ghostty/themes/Quickshell` | `theme = Quickshell` |

@@ -8,8 +8,9 @@ import "../style"
 
 // Wallpaper picker state. `dir` is scanned recursively for images;
 // `current` comes from `awww query` at startup and is tracked as the user picks.
-// Applying = `awww img <file>`, whose shim may also rerun matugen. Open state
-// mirrors Notifs/LauncherState.
+// Applying = `matugen image <file>`: Matugen applies the wallpaper via its
+// configured real awww command and writes the palette that Quickshell watches.
+// Open state mirrors Notifs/LauncherState.
 Singleton {
     id: root
 
@@ -67,7 +68,7 @@ Singleton {
             root.pendingSetPath = path;
             return;
         }
-        setProc.command = ["awww", "img", path];
+        setProc.command = ["/usr/bin/matugen", "image", path];
         setProc.running = true;
     }
 
@@ -244,11 +245,11 @@ Singleton {
         onExited: (exitCode, exitStatus) => {
             applyTimeout.stop();
             if (exitCode !== 0)
-                root.error = "Could not apply wallpaper — check that awww is running";
+                root.error = "Could not apply wallpaper — check matugen and awww";
             if (root.pendingSetPath !== "") {
                 const next = root.pendingSetPath;
                 root.pendingSetPath = "";
-                setProc.command = ["awww", "img", next];
+                setProc.command = ["/usr/bin/matugen", "image", next];
                 setProc.running = true;
             }
         }
@@ -258,7 +259,7 @@ Singleton {
         id: applyTimeout
 
         interval: 10000
-        onTriggered: root.error = "Wallpaper command did not respond — check that awww is running"
+        onTriggered: root.error = "Wallpaper command did not respond — check matugen and awww"
     }
 
     IpcHandler {
