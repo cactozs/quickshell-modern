@@ -39,7 +39,7 @@ Singleton {
 
     function defaultSettings(type: string): var {
         if (type === "transparentClock")
-            return { colorRole: "surfaceText" };
+            return { colorRole: "surfaceText", shadow: true };
         return ({});
     }
 
@@ -117,6 +117,42 @@ Singleton {
         cur.y = pos.y;
         root._persist();
         root.itemChanged(id);
+    }
+
+    // Lay every widget out in a tidy shelf sized for the current screen. Widths
+    // and heights are the card maxima plus room for scaled hero widgets, so a
+    // reset never stacks one widget on another.
+    function resetLayout(viewportWidth: real): void {
+        const margin = 24;
+        const gap = 24;
+        const widths = {
+            media: 340, system: 340, battery: 300, transparentClock: 280,
+            clock: 280, weather: 280, network: 280
+        };
+        const heights = {
+            media: 190, system: 210, battery: 190, transparentClock: 160,
+            clock: 190, weather: 175, network: 160
+        };
+        let x = margin;
+        let y = margin;
+        let rowHeight = 0;
+        root.items.forEach(w => {
+            const scale = Number(w.scale ?? 1);
+            const cw = (widths[w.type] ?? 280) * scale;
+            const ch = (heights[w.type] ?? 190) * scale;
+            if (x > margin && x + cw > viewportWidth - margin) {
+                x = margin;
+                y += rowHeight + gap;
+                rowHeight = 0;
+            }
+            w.x = Math.round(x);
+            w.y = Math.round(y);
+            x += cw + gap;
+            rowHeight = Math.max(rowHeight, ch);
+        });
+        root._persist();
+        for (const w of root.items)
+            root.itemChanged(w.id);
     }
 
     function setScale(id: string, scale: real): void {

@@ -10,7 +10,9 @@ WidgetCard {
 
     title: "Погода"
     icon: root.weatherIcon
-    cardWidth: 240
+    accent: Theme.tertiary
+    cardWidth: 280
+    badge: root.city
 
     property bool loading: false
     property bool failed: false
@@ -18,6 +20,9 @@ WidgetCard {
     property string feels: ""
     property string desc: "Загрузка..."
     property string weatherIcon: "partly_cloudy_day"
+    property string city: ""
+    property string high: "—"
+    property string low: "—"
     property var coords: null
 
     function weatherCodeInfo(code: var): var {
@@ -49,6 +54,7 @@ WidgetCard {
             "https://api.open-meteo.com/v1/forecast?latitude=" + c.lat
             + "&longitude=" + c.lon
             + "&current=temperature_2m,apparent_temperature,weather_code"
+            + "&daily=temperature_2m_max,temperature_2m_min"
             + "&timezone=auto&forecast_days=1"];
         weatherProc.running = true;
     }
@@ -63,13 +69,14 @@ WidgetCard {
 
     Process {
         id: geoProc
-        command: ["curl", "-s", "--max-time", "5", "http://ip-api.com/json/?fields=status,lat,lon"]
+        command: ["curl", "-s", "--max-time", "5", "http://ip-api.com/json/?fields=status,lat,lon,city"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     const data = JSON.parse(text);
                     if (data?.status === "success") {
                         root.coords = { lat: data.lat, lon: data.lon };
+                        root.city = String(data.city ?? "");
                         root.startWeatherFetch();
                         return;
                     }
@@ -88,16 +95,21 @@ WidgetCard {
             onStreamFinished: {
                 root.loading = false;
                 try {
-                    const cur = JSON.parse(text)?.current;
+                    const data = JSON.parse(text);
+                    const cur = data?.current;
                     const info = root.weatherCodeInfo(cur.weather_code);
                     const temp = Number(cur?.temperature_2m);
                     const feels = Number(cur?.apparent_temperature);
                     if (!Number.isFinite(temp))
                         throw new Error("bad weather payload");
+                    const hi = Number(data?.daily?.temperature_2m_max?.[0]);
+                    const lo = Number(data?.daily?.temperature_2m_min?.[0]);
                     root.weatherIcon = info.icon;
                     root.desc = info.desc;
                     root.temp = Math.round(temp) + "°";
                     root.feels = "Ощущается " + Math.round(Number.isFinite(feels) ? feels : temp) + "°";
+                    root.high = Number.isFinite(hi) ? Math.round(hi) + "°" : "—";
+                    root.low = Number.isFinite(lo) ? Math.round(lo) + "°" : "—";
                     root.failed = false;
                     return;
                 } catch (e) {}
@@ -108,31 +120,68 @@ WidgetCard {
         onExited: code => { if (code !== 0) { root.loading = false; root.failed = true; root.desc = "Ошибка погоды"; } }
     }
 
-    Text {
+    RowLayout {
         Layout.fillWidth: true
-        text: root.temp
-        color: Qt.lighter(Theme.primary, 1.2)
-        font.family: Theme.fontFamily
-        font.pixelSize: 34
-        font.weight: Font.DemiBold
+        spacing: 14
+
+        Text {
+            text: root.temp
+            color: Qt.lighter(Theme.tertiary, 1.15)
+            font.family: Theme.fontFamily
+            font.pixelSize: 46
+            font.weight: Font.DemiBold
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 3
+
+            Text {
+                Layout.fillWidth: true
+                text: root.desc
+                color: Theme.surfaceText
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+                elide: Text.ElideRight
+            }
+
+            Text {
+                Layout.fillWidth: true
+                visible: root.feels !== ""
+                text: root.feels
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                elide: Text.ElideRight
+            }
+        }
     }
 
-    Text {
+    RowLayout {
         Layout.fillWidth: true
-        text: root.desc
-        color: Theme.surfaceText
-        font.family: Theme.fontFamily
-        font.pixelSize: 13
-        elide: Text.ElideRight
-    }
+        Layout.topMargin: 2
+        spacing: 10
 
-    Text {
-        Layout.fillWidth: true
-        visible: root.feels !== ""
-        text: root.feels
-        color: Theme.surfaceVariantText
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        elide: Text.ElideRight
+        Text {
+            text: "Макс " + root.high
+            color: Theme.surfaceVariantText
+            font.family: Theme.fontFamily
+            font.pixelSize: 11
+        }
+
+        Rectangle {
+            width: 1
+            height: 12
+            color: Theme.plateBorder
+        }
+
+        Text {
+            text: "Мин " + root.low
+            color: Theme.surfaceVariantText
+            font.family: Theme.fontFamily
+            font.pixelSize: 11
+        }
+
+        Item { Layout.fillWidth: true }
     }
 }

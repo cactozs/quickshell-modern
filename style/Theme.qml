@@ -27,6 +27,11 @@ Singleton {
     readonly property int radiusLG: 18
     readonly property int radiusXL: 24
     readonly property int radiusMD: 12
+    readonly property int radiusWidget: 26
+
+    function alpha(c: color, factor: real): color {
+        return Qt.rgba(c.r, c.g, c.b, factor);
+    }
 
     readonly property string colorScheme: state.colorScheme === "gruvbox" ? "gruvbox" : "matugen"
     readonly property bool useGruvbox: colorScheme === "gruvbox"
@@ -36,6 +41,7 @@ Singleton {
     readonly property color plateStrong: useGruvbox ? "#ff282828" : "#ff000000"
     readonly property color plateBorder: useGruvbox ? Qt.rgba(0.93, 0.86, 0.70, 0.10) : Qt.rgba(1, 1, 1, 0.08)
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.5)
+    readonly property color widgetHighlight: Qt.rgba(1, 1, 1, 0.09)
 
     // ---- accents & text (scheme-dependent) ----
     // Text roles avoid the `on<Capital>` form: QML parses those as signal

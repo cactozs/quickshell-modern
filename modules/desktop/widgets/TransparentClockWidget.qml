@@ -10,6 +10,7 @@ Item {
 
     property var settings: ({})
     readonly property string colorRole: String(settings.colorRole ?? "surfaceText")
+    readonly property bool shadow: settings.shadow !== false
     readonly property color clockColor: {
         switch (root.colorRole) {
         case "primary":
@@ -51,21 +52,38 @@ Item {
         anchors.top: parent.top
         spacing: 2
 
-        Text {
+        Item {
             Layout.alignment: Qt.AlignHCenter
-            text: Qt.formatDateTime(clock.date, "HH:mm")
-            color: root.clockColor
-            font.family: "SF Pro Rounded"
-            font.pixelSize: 144
-            font.weight: Font.Bold
+            implicitWidth: timeText.implicitWidth
+            implicitHeight: timeText.implicitHeight
+
+            Text {
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: 3
+                visible: root.shadow
+                text: timeText.text
+                color: Qt.rgba(0, 0, 0, 0.35)
+                font.family: "SF Pro Rounded"
+                font.pixelSize: 138
+                font.weight: Font.Bold
+            }
+
+            Text {
+                id: timeText
+                text: Qt.formatDateTime(clock.date, "HH:mm")
+                color: root.clockColor
+                font.family: "SF Pro Rounded"
+                font.pixelSize: 138
+                font.weight: Font.Bold
+            }
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatDateTime(clock.date, "dddd, d MMMM")
-            color: root.clockColor
+            color: Theme.alpha(root.clockColor, 0.68)
             font.family: "SF Pro Rounded"
-            font.pixelSize: 30
+            font.pixelSize: 29
             font.weight: Font.Bold
         }
     }

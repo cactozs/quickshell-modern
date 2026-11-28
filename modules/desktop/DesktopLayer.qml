@@ -94,7 +94,6 @@ PanelWindow {
         z: 1
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onPressed: mouse => {
-            console.log("DesktopLayer: background press", mouse.button, mouse.x, mouse.y);
             if (mouse.button === Qt.RightButton) {
                 root.openDesktopMenu(mouse.x, mouse.y);
                 mouse.accepted = true;
@@ -121,6 +120,7 @@ PanelWindow {
             ctx.clearRect(0, 0, width, height);
             ctx.strokeStyle = Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.18);
             ctx.lineWidth = 1;
+            ctx.setLineDash([4, 6]);
             const xs = [root.edgeInset, width / 2, width - root.edgeInset];
             const ys = [root.edgeInset, height / 2, height - root.edgeInset];
             for (const x of xs) {
@@ -155,13 +155,19 @@ PanelWindow {
             readonly property bool dragging: dragArea.pressed && dragArea.moved
 
             function syncFromModel(): void {
+                // modelData is a snapshot for array models, so read the live
+                // item by id; otherwise a drag followed by any menu action
+                // snaps the widget back to its position at load time.
+                const item = DesktopWidgets.items.find(w => w.id === widgetWrap.widgetId);
+                if (!item)
+                    return;
                 if (!(dragArea.pressed && dragArea.moved)) {
-                    wx = Number(modelData.x ?? 40);
-                    wy = Number(modelData.y ?? 40);
+                    wx = Number(item.x ?? 40);
+                    wy = Number(item.y ?? 40);
                 }
-                widgetScale = Number(modelData.scale ?? 1);
+                widgetScale = Number(item.scale ?? 1);
                 if (loader.item && "settings" in loader.item)
-                    loader.item.settings = modelData.settings ?? ({});
+                    loader.item.settings = item.settings ?? ({});
             }
 
             x: wx
@@ -186,6 +192,16 @@ PanelWindow {
                 }
             }
 
+            Rectangle {
+                x: 6
+                y: 10
+                width: loader.width
+                height: loader.height
+                radius: Theme.radiusWidget
+                color: Qt.rgba(0, 0, 0, 0.4)
+                visible: widgetWrap.dragging
+            }
+
             Loader {
                 id: loader
                 sourceComponent: widgetWrap.widgetType === "clock" ? clockComp
@@ -200,6 +216,10 @@ PanelWindow {
                 onLoaded: {
                     if (item && "settings" in item)
                         item.settings = widgetWrap.modelData.settings ?? ({});
+                    if (item && "hovered" in item)
+                        item.hovered = Qt.binding(() => dragArea.containsMouse);
+                    if (item && "dragging" in item)
+                        item.dragging = Qt.binding(() => widgetWrap.dragging);
                 }
             }
 
@@ -216,7 +236,7 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
-                cursorShape: pressed && moved ? Qt.ClosedHandCursor : Qt.ArrowCursor
+                cursorShape: pressed && moved ? Qt.ClosedHandCursor : Qt.SizeAllCursor
 
                 onPressed: mouse => {
                     const p = widgetWrap.mapToItem(root.contentItem, mouse.x, mouse.y);
@@ -308,21 +328,68 @@ PanelWindow {
 
         readonly property var addOptions: root.menuMode === "desktop" ? DesktopWidgets.availableToAdd() : []
         readonly property bool emptyDesktop: root.menuMode === "desktop" && addOptions.length === 0
-        readonly property var menuItem: DesktopWidgets.items.find(w => w.id === root.menuWidgetId) ?? null
+        property int revision: 0
+        // Return a fresh object on every itemChanged so the rows re-read
+        // scale/settings while the menu stays open. In-place model mutations
+        // do not notify bindings otherwise.
+        readonly property var menuItem: {
+            menu.revision;
+            const item = DesktopWidgets.items.find(w => w.id === root.menuWidgetId);
+            return item ? Object.assign({}, item) : null;
+        }
         readonly property var menuSpec: menuItem ? DesktopWidgets.spec(menuItem.type) : null
-        readonly property int menuWidth: 230
+        readonly property bool shadowOn: menu.menuItem?.settings?.shadow !== false
+        readonly property bool isTransparentClock: root.menuMode === "widget" && menu.menuItem?.type === "transparentClock"
+        readonly property int menuWidth: 252
+
+        Connections {
+            target: DesktopWidgets
+
+            function onItemChanged(id: string): void {
+                if (id === root.menuWidgetId)
+                    menu.revision++;
+            }
+        }
 
         visible: root.menuVisible
         z: 20
         width: menuWidth
         height: menuCol.implicitHeight + 12
-        radius: Theme.radiusMD
+        radius: 22
         color: Theme.plateStrong
         border.width: 1
         border.color: Theme.plateBorder
+        scale: root.menuVisible ? 1 : 0.96
+        opacity: root.menuVisible ? 1 : 0
+        transformOrigin: Item.TopLeft
+
+        Behavior on scale {
+            NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+        }
 
         x: Math.min(root.menuX, Math.max(8, root.width - width - 8))
         y: Math.min(root.menuY, Math.max(8, root.height - height - 8))
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.05) }
+                GradientStop { position: 0.6; color: "transparent" }
+            }
+        }
+
+        Rectangle {
+            x: 18
+            y: 0
+            width: parent.width - 36
+            height: 1
+            color: Theme.widgetHighlight
+        }
 
         Column {
             id: menuCol
@@ -347,44 +414,96 @@ PanelWindow {
                 font.weight: Font.Medium
             }
 
-            Repeater {
-                model: root.menuMode === "widget" ? [
-                    { action: "bigger", label: "Увеличить размер", icon: "zoom_in", danger: false },
-                    { action: "smaller", label: "Уменьшить размер", icon: "zoom_out", danger: false },
-                    { action: "reset", label: "Сбросить позицию", icon: "restart_alt", danger: false },
-                    { action: "remove", label: "Удалить виджет", icon: "delete", danger: true }
-                ] : []
+            Item {
+                visible: root.menuMode === "widget"
+                width: menuCol.width
+                height: visible ? 38 : 0
 
-                delegate: MenuRow {
-                    required property var modelData
-                    width: menuCol.width
-                    label: modelData.label
-                    icon: modelData.icon
-                    danger: modelData.danger === true
-                    onClicked: {
-                        const cur = Number(menu.menuItem?.scale ?? 1);
-                        if (modelData.action === "bigger")
-                            DesktopWidgets.setScale(root.menuWidgetId, cur + 0.1);
-                        if (modelData.action === "smaller")
-                            DesktopWidgets.setScale(root.menuWidgetId, cur - 0.1);
-                        if (modelData.action === "reset")
-                            DesktopWidgets.resetPosition(root.menuWidgetId);
-                        if (modelData.action === "remove")
-                            DesktopWidgets.remove(root.menuWidgetId);
-                        if (modelData.action === "remove" || modelData.action === "reset")
-                            root.closeMenu();
+                RowLayout {
+                    anchors {
+                        fill: parent
+                        leftMargin: 10
+                        rightMargin: 8
+                    }
+                    spacing: 6
+
+                    Text {
+                        text: "Размер"
+                        color: Theme.surfaceVariantText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    StepButton {
+                        glyph: "remove"
+                        onClicked: DesktopWidgets.setScale(root.menuWidgetId, Number(menu.menuItem?.scale ?? 1) - 0.1)
+                    }
+
+                    Text {
+                        Layout.preferredWidth: 42
+                        horizontalAlignment: Text.AlignHCenter
+                        text: Math.round(Number(menu.menuItem?.scale ?? 1) * 100) + "%"
+                        color: Theme.surfaceText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                    }
+
+                    StepButton {
+                        glyph: "add"
+                        onClicked: DesktopWidgets.setScale(root.menuWidgetId, Number(menu.menuItem?.scale ?? 1) + 0.1)
                     }
                 }
             }
 
+            MenuRow {
+                visible: menu.isTransparentClock
+                width: menuCol.width
+                label: "Тень текста"
+                icon: "shadow"
+                trailingIcon: menu.shadowOn ? "check" : ""
+                onClicked: DesktopWidgets.setSetting(root.menuWidgetId, "shadow", !menu.shadowOn)
+            }
+
+            Rectangle {
+                visible: root.menuMode === "widget"
+                x: 10
+                width: parent.width - 20
+                height: 1
+                color: Theme.plateBorder
+            }
+
+            MenuRow {
+                visible: root.menuMode === "widget"
+                width: menuCol.width
+                label: "Сбросить позицию"
+                icon: "restart_alt"
+                onClicked: {
+                    DesktopWidgets.resetPosition(root.menuWidgetId);
+                    root.closeMenu();
+                }
+            }
+
+            MenuRow {
+                visible: root.menuMode === "widget"
+                width: menuCol.width
+                label: "Удалить виджет"
+                icon: "delete"
+                danger: true
+                onClicked: {
+                    DesktopWidgets.remove(root.menuWidgetId);
+                    root.closeMenu();
+                }
+            }
+
             Column {
-                visible: root.menuMode === "widget" && menu.menuItem?.type === "transparentClock"
-                height: visible ? implicitHeight : 0
+                visible: menu.isTransparentClock
                 width: menuCol.width
                 spacing: 6
-                topPadding: visible ? 4 : 0
-                bottomPadding: visible ? 4 : 0
-                clip: true
+                topPadding: 4
+                bottomPadding: 4
 
                 Rectangle {
                     x: 10
@@ -406,7 +525,7 @@ PanelWindow {
                 Flow {
                     x: 10
                     width: parent.width - 20
-                    spacing: 8
+                    spacing: 9
 
                     Repeater {
                         model: DesktopWidgets.colorRoles()
@@ -430,13 +549,23 @@ PanelWindow {
                                 default: return Theme.surfaceText;
                                 }
                             }
+                            readonly property bool lightSwatch: 0.299 * swatchColor.r + 0.587 * swatchColor.g + 0.114 * swatchColor.b > 0.55
 
                             width: 24
                             height: 24
                             radius: 12
                             color: swatchColor
                             border.width: selected ? 2 : 1
-                            border.color: selected ? Theme.primary : Theme.plateBorder
+                            border.color: selected ? Theme.containerText : Theme.plateBorder
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: parent.selected
+                                text: "check"
+                                color: parent.lightSwatch ? "#000000" : "#ffffff"
+                                font.family: Theme.iconFont
+                                font.pixelSize: 14
+                            }
 
                             MouseArea {
                                 anchors.fill: parent
@@ -449,18 +578,51 @@ PanelWindow {
                 }
             }
 
+            Text {
+                visible: root.menuMode === "desktop" && menu.addOptions.length > 0
+                width: parent.width
+                leftPadding: 10
+                rightPadding: 10
+                topPadding: 6
+                bottomPadding: 2
+                text: "Добавить"
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                font.weight: Font.Medium
+            }
+
             Repeater {
                 model: root.menuMode === "desktop" ? menu.addOptions : []
 
                 delegate: MenuRow {
                     required property var modelData
                     width: menuCol.width
-                    label: "Добавить: " + modelData.label
+                    label: modelData.label
                     icon: modelData.icon
                     onClicked: {
                         DesktopWidgets.add(modelData.type);
                         root.closeMenu();
                     }
+                }
+            }
+
+            Rectangle {
+                visible: root.menuMode === "desktop" && DesktopWidgets.items.length > 0
+                x: 10
+                width: parent.width - 20
+                height: 1
+                color: Theme.plateBorder
+            }
+
+            MenuRow {
+                visible: root.menuMode === "desktop" && DesktopWidgets.items.length > 0
+                width: menuCol.width
+                label: "Сбросить раскладку"
+                icon: "grid_view"
+                onClicked: {
+                    DesktopWidgets.resetLayout(root.width);
+                    root.closeMenu();
                 }
             }
 
@@ -484,27 +646,41 @@ PanelWindow {
 
         required property string label
         property string icon: ""
+        property string trailingIcon: ""
+        property string trailingText: ""
         property bool danger: false
         signal clicked()
 
-        height: 34
-        radius: Theme.radiusMD
-        color: rowArea.containsMouse ? (danger ? Qt.rgba(Theme.error.r, Theme.error.g, Theme.error.b, 0.16) : Theme.surfaceContainerHigh) : "transparent"
+        height: 38
+        radius: 10
+        color: rowArea.containsMouse ? (row.danger ? Theme.alpha(Theme.error, 0.14) : Theme.surfaceContainerHigh) : "transparent"
+
+        Behavior on color {
+            ColorAnimation { duration: 80; easing.type: Easing.OutCubic }
+        }
 
         RowLayout {
             anchors {
                 fill: parent
-                leftMargin: 10
+                leftMargin: 8
                 rightMargin: 10
             }
             spacing: 8
 
-            Text {
+            Rectangle {
                 visible: row.icon !== ""
-                text: row.icon
-                color: row.danger ? Theme.error : Theme.surfaceVariantText
-                font.family: Theme.iconFont
-                font.pixelSize: 16
+                width: 26
+                height: 26
+                radius: 8
+                color: row.danger ? Theme.alpha(Theme.error, 0.12) : Theme.alpha(Theme.primary, 0.10)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: row.icon
+                    color: row.danger ? Theme.error : Theme.primary
+                    font.family: Theme.iconFont
+                    font.pixelSize: 15
+                }
             }
 
             Text {
@@ -515,13 +691,62 @@ PanelWindow {
                 font.pixelSize: 13
                 elide: Text.ElideRight
             }
+
+            Text {
+                visible: row.trailingText !== ""
+                text: row.trailingText
+                color: Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+            }
+
+            Text {
+                visible: row.trailingIcon !== ""
+                text: row.trailingIcon
+                color: Theme.surfaceVariantText
+                font.family: Theme.iconFont
+                font.pixelSize: 16
+            }
         }
 
         MouseArea {
             id: rowArea
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: row.clicked()
+        }
+    }
+
+    component StepButton: Rectangle {
+        id: step
+
+        required property string glyph
+        signal clicked()
+
+        width: 26
+        height: 26
+        radius: 8
+        color: stepArea.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainer
+
+        Behavior on color {
+            ColorAnimation { duration: 80; easing.type: Easing.OutCubic }
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: step.glyph
+            color: Theme.surfaceText
+            font.family: Theme.iconFont
+            font.pixelSize: 15
+        }
+
+        MouseArea {
+            id: stepArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: step.clicked()
         }
     }
 

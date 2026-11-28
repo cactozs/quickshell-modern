@@ -8,32 +8,75 @@ import "../../../style"
 WidgetCard {
     id: root
 
-    readonly property string statusText: {
-        if (!Net.available) return "Недоступно";
-        if (Net.icon === "signal_cellular_alt") return "Wi-Fi подключён";
-        if (Net.icon === "lan") return "Ethernet подключён";
-        return "Нет подключения";
-    }
+    readonly property bool online: Net.icon === "signal_cellular_alt" || Net.icon === "lan"
+    readonly property bool wifi: Net.icon === "signal_cellular_alt"
+    readonly property string bigIcon: root.wifi ? "wifi" : Net.icon === "lan" ? "lan" : "wifi_off"
+    readonly property string typeText: !Net.available ? "Недоступно"
+        : root.wifi ? "Wi-Fi"
+        : Net.icon === "lan" ? "Ethernet" : "Офлайн"
+    readonly property string stateText: !Net.available ? "nmcli не отвечает"
+        : root.online ? "Подключено" : "Нет подключения"
+    readonly property color accentColor: root.online ? Theme.primary : Theme.outline
 
     title: "Сеть"
-    icon: Net.icon
-    cardWidth: 220
+    icon: root.bigIcon
+    accent: root.accentColor
+    cardWidth: 280
+    badge: root.online ? "Онлайн" : "Офлайн"
 
-    Text {
+    RowLayout {
         Layout.fillWidth: true
-        text: Net.icon === "wifi_off" || Net.icon === "signal_cellular_off" ? "Офлайн" : "Онлайн"
-        color: Net.icon === "wifi_off" || Net.icon === "signal_cellular_off" ? Theme.surfaceVariantText : Qt.lighter(Theme.primary, 1.2)
-        font.family: Theme.fontFamily
-        font.pixelSize: 30
-        font.weight: Font.DemiBold
-    }
+        spacing: 16
 
-    Text {
-        Layout.fillWidth: true
-        text: root.statusText
-        color: Theme.surfaceVariantText
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        elide: Text.ElideRight
+        Rectangle {
+            width: 64
+            height: 64
+            radius: 20
+            color: Theme.alpha(root.accentColor, 0.12)
+
+            Text {
+                anchors.centerIn: parent
+                text: root.bigIcon
+                color: root.accentColor
+                font.family: Theme.iconFont
+                font.pixelSize: 30
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 3
+
+            Text {
+                Layout.fillWidth: true
+                text: root.typeText
+                color: root.online ? Theme.surfaceText : Theme.surfaceVariantText
+                font.family: Theme.fontFamily
+                font.pixelSize: 24
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Rectangle {
+                    width: 6
+                    height: 6
+                    radius: 3
+                    color: root.online ? Theme.secondary : Theme.outline
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: root.stateText
+                    color: Theme.surfaceVariantText
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12
+                    elide: Text.ElideRight
+                }
+            }
+        }
     }
 }
