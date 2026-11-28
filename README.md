@@ -39,6 +39,8 @@ keeps the whole desktop in sync with the wallpaper.
 - **Clipboard history** — browse, re-copy and delete `cliphist` entries with the keyboard
   or mouse. Entries show a type/preview (image thumbnail or text/binary info with
   size/length metadata).
+- **OCR** — press `Mod+Shift+S`, drag a region on the focused output and the recognized
+  text (Tesseract, `rus+est+eng` by default) lands in the clipboard with a notification.
 - **Wallpapers** — a thumbnail ribbon of your wallpaper directory (`~/Pictures/Wallpapers` by
   default, override with `QS_WALLPAPERS_DIR`), plus desktop drag-and-drop for new images.
 - **OSD** — volume, brightness, microphone, Caps Lock and keyboard-layout changes replace
@@ -76,6 +78,10 @@ keeps the whole desktop in sync with the wallpaper.
 - **PipeWire + WirePlumber** and `pactl` (from `libpulse`) — audio state and volume control.
 - **curl** — weather data from `api.open-meteo.com` (location via `ipwho.is`).
 - **fd** — recursive scan of the wallpaper directory.
+- **grim** — screen capture for OCR.
+- **ImageMagick** (`magick`) — crops the OCR selection.
+- **Tesseract** with `tesseract-data-rus`, `tesseract-data-est` and
+  `tesseract-data-eng` — local OCR.
 - **Google Sans** and **Material Symbols Rounded** — the default UI fonts.
 - Optional: **jq** for focused-output keybinds, **bat** for the bat color target,
   **libnotify** for timer completion notifications, **dbus** plus **systemd-inhibit** for
@@ -87,7 +93,8 @@ On Arch Linux, the core packages are:
 ```bash
 sudo pacman -S --needed quickshell niri matugen cliphist wl-clipboard \
   brightnessctl networkmanager bluez-utils wireplumber libpulse curl jq fd \
-  ttf-material-symbols-variable
+  grim imagemagick tesseract tesseract-data-rus tesseract-data-est \
+  tesseract-data-eng ttf-material-symbols-variable
 ```
 
 Install `awww` separately (package or local build), and place `GoogleSans.ttf` in
@@ -157,6 +164,9 @@ binds {
     Mod+P repeat=false hotkey-overlay-title="Toggle Bar" {
         spawn "qs" "ipc" "call" "bar" "toggle";
     }
+    Mod+Shift+S repeat=false hotkey-overlay-title="OCR" {
+        spawn-sh "qs ipc call ocr startOn $(niri msg --json focused-output | jq -r .name)";
+    }
 }
 ```
 
@@ -180,6 +190,7 @@ All panel state can be driven with `qs ipc call <target> <function> [args...]`:
 | `quicksettings` | `toggle` / `toggleOn <screen>` / `close` | Open, open on a specific output, or close |
 | `quicksettings` | `openTab <screen> <index>` | Open the panel on a specific tab |
 | `clipboard` | `toggle` / `toggleOn <screen>` / `close` | Clipboard history |
+| `ocr` | `start` / `startOn <screen>` / `cancel` | Region OCR: capture, recognize and copy |
 | `wallpaper` | `toggle` / `toggleOn <screen>` / `close` | Wallpaper ribbon |
 | `wallpaper` | `set <path>` / `refresh` | Apply a wallpaper / rescan the collection |
 | `notifs` | `toggle` / `toggleOn <screen>` / `close` | Notification center (quick settings notifications tab) |
@@ -354,6 +365,7 @@ immediately. Non-file URLs and unsupported extensions are ignored.
 │   ├── clipboard/            # Clipboard history picker
 │   ├── launcher/             # Application launcher
 │   ├── notifs/               # Notification cards, toasts, click-outside scrim
+│   ├── ocr/                  # Fullscreen region selector for OCR
 │   ├── osd/                  # In-bar OSD
 │   ├── quicksettings/        # Control center and all tabs
 │   └── wallpaper/            # Wallpaper ribbon and desktop drop target
@@ -383,6 +395,8 @@ still land.
   `QS_LOCK_TIMEOUT` / `QS_MONITOR_OFF_TIMEOUT` (seconds).
 - **App theme files are overwritten.** Disable a target in App colors if you maintain that
   file by hand.
+- **OCR runs locally.** Tesseract reads the selected region; the default language set is
+  `rus+est+eng` and can be overridden with `QS_OCR_LANGS`.
 - Tested with Quickshell 0.3.2 and niri 26.04 on Arch Linux. Other versions may work but are
   not tested.
 
@@ -397,6 +411,9 @@ still land.
   palette fallback only).
 - **Clipboard issues:** ensure `wl-paste --watch cliphist store` daemons are running and
   `cliphist`, `wl-copy`, `wl-paste` are installed.
+- **OCR issues:** install `grim`, `imagemagick`, `tesseract` and the language packs; run
+  `tesseract --list-langs` to confirm `rus`, `est` and `eng`. The default language set is
+  `rus+est+eng`; override it with `QS_OCR_LANGS` (for example `QS_OCR_LANGS=eng+rus`).
 - **Theme/wallpaper issues:** verify `awww-daemon` is running, `QS_WALLPAPERS_DIR` points to
   an existing directory, and matugen writes to `style/Colors.json` if using Matugen scheme.
   Use `qs ipc call systemtheme apply` to force-regenerate app theme files.

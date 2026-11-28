@@ -23,6 +23,9 @@ check awww 'wallpaper picker and desktop drop' 'awww'
 check fd 'wallpaper collection scan' 'fd'
 check cliphist 'clipboard history' 'cliphist'
 check wl-copy 'copying clipboard entries' 'wl-clipboard'
+check grim 'OCR region capture' 'grim'
+check magick 'OCR image cropping' 'imagemagick'
+check tesseract 'OCR text recognition' 'tesseract'
 check brightnessctl 'backlight slider' 'brightnessctl'
 check nmcli 'Wi-Fi controls' 'networkmanager'
 check bluetoothctl 'Bluetooth controls' 'bluez-utils'
@@ -37,6 +40,15 @@ check stdbuf 'audio/network event monitoring' 'coreutils'
 check gsettings 'GTK color scheme selection' 'glib2'
 check fc-match 'font availability check' 'fontconfig'
 
+if command -v tesseract >/dev/null 2>&1; then
+    for lang in rus est eng; do
+        if ! tesseract --list-langs 2>/dev/null | grep -qx "$lang"; then
+            printf '  ! %-16s missing OCR language data — install: tesseract-data-%s\n' "$lang" "$lang"
+            missing=$((missing + 1))
+        fi
+    done
+fi
+
 if command -v fc-match >/dev/null 2>&1; then
     for font in 'Google Sans' 'Material Symbols Rounded'; do
         if ! fc-match "$font" | grep -Fq "$font"; then
@@ -46,4 +58,4 @@ if command -v fc-match >/dev/null 2>&1; then
     done
 fi
 
-printf '\n%s missing command(s) or fonts. The shell can still start; affected features may be unavailable.\n' "$missing"
+printf '\n%s missing command(s), fonts, or language data. The shell can still start; affected features may be unavailable.\n' "$missing"
