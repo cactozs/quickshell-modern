@@ -24,7 +24,7 @@ WidgetCard {
 
     title: root.player?.identity || "Медиа"
     icon: "music_note"
-    accent: Theme.tertiary
+    accent: Theme.primary
     cardWidth: 340
     badge: root.stateText
 
@@ -77,7 +77,7 @@ WidgetCard {
                 anchors.fill: parent
                 radius: 18
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Theme.alpha(Theme.tertiary, 0.22) }
+                    GradientStop { position: 0.0; color: Theme.alpha(Theme.primary, 0.22) }
                     GradientStop { position: 1.0; color: Theme.surfaceContainerHigh }
                 }
             }
@@ -104,7 +104,7 @@ WidgetCard {
                 anchors.centerIn: parent
                 visible: !art.visible
                 text: "music_note"
-                color: Theme.alpha(Theme.tertiary, 0.55)
+                color: Theme.alpha(Theme.primary, 0.55)
                 font.family: Theme.iconFont
                 font.pixelSize: 38
             }
@@ -182,7 +182,7 @@ WidgetCard {
                 width: parent.width * (root.length > 0 ? Math.max(0, Math.min(1, root.pos / root.length)) : 0)
                 height: parent.height
                 radius: parent.radius
-                color: Theme.tertiary
+                color: Theme.primary
             }
         }
 

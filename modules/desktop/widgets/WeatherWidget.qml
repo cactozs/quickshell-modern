@@ -10,7 +10,7 @@ WidgetCard {
 
     title: "Погода"
     icon: root.weatherIcon
-    accent: Theme.tertiary
+    accent: Theme.primary
     cardWidth: 280
     badge: root.city
 
@@ -126,7 +126,7 @@ WidgetCard {
 
         Text {
             text: root.temp
-            color: Qt.lighter(Theme.tertiary, 1.15)
+            color: Qt.lighter(Theme.primary, 1.15)
             font.family: Theme.fontFamily
             font.pixelSize: 46
             font.weight: Font.DemiBold
