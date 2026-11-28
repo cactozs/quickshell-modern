@@ -37,19 +37,21 @@ QtObject {
     }
 
     property IdleMonitor idleLock: IdleMonitor {
+        enabled: !Caffeine.enabled
         timeout: Number(Quickshell.env("QS_LOCK_TIMEOUT")) || 300
 
         onIsIdleChanged: {
-            if (isIdle && !Caffeine.enabled)
+            if (isIdle)
                 root.lock();
         }
     }
 
     property IdleMonitor idleMonitors: IdleMonitor {
+        enabled: !Caffeine.enabled
         timeout: Number(Quickshell.env("QS_MONITOR_OFF_TIMEOUT")) || 450
 
         onIsIdleChanged: {
-            if (isIdle && !Caffeine.enabled)
+            if (isIdle)
                 Quickshell.execDetached(["niri", "msg", "action", "power-off-monitors"]);
         }
     }
